@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TEN Projects — TAPC &amp; oTherm Explorer (v5)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root {
+    --navy: #1f3864;
+    --navy-light: #2e5395;
+    --blue: #4472c4;
+    --blue-pale: #eaf1fb;
+    --gray: #595959;
+    --gray-light: #f4f5f7;
+    --border: #dde1e8;
+    --green: #1e7145;
+    --green-pale: #eaf6ef;
+    --amber: #b7791f;
+    --amber-pale: #fdf3e3;
+    --purple: #7030a0;
+    --purple-pale: #f2eaf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--gray-light);
+    color: #222;
+  }
+  .brandbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .brandbar .logo-svg { height: 34px; width: auto; display: block; }
+  .brand-contact { font-size: 12.5px; color: var(--gray); text-align: right; }
+  .brand-contact a { color: var(--navy); text-decoration: none; font-weight: 600; }
+  header {
+    background: linear-gradient(135deg, var(--navy), var(--navy-light));
+    color: #fff;
+    padding: 24px 32px 20px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; color: #cdd8ec; font-size: 14px; }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 22px;
+  }
+  .toolbar label { font-size: 13px; font-weight: 600; color: var(--navy); margin-right: 6px; }
+  select {
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    min-width: 260px;
+    background: #fff;
+  }
+  .tabbtn {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--navy);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tabbtn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .spacer { flex: 1; }
+  .count { font-size: 12px; color: var(--gray); }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 20px;
+  }
+  .proj-title { font-size: 20px; font-weight: 700; color: var(--navy); margin: 0 0 4px; }
+  .proj-meta { font-size: 13px; color: var(--gray); margin-bottom: 4px; }
+  .proj-stats { font-size: 13px; color: var(--gray); font-style: italic; margin-bottom: 18px; }
+
+  .section-block { margin-bottom: 18px; }
+  .section-block h3 {
+    font-size: 14px; text-transform: uppercase; letter-spacing: .03em;
+    margin: 0 0 6px; border-bottom: 2px solid var(--blue-pale); padding-bottom: 4px;
+  }
+  .section-block.core h3 { color: var(--blue); border-bottom-color: var(--blue-pale); }
+  .section-block.policy h3 { color: var(--green); border-bottom-color: var(--green-pale); }
+  .section-block.decarb h3 { color: var(--amber); border-bottom-color: var(--amber-pale); }
+  .section-block.mv h3 { color: var(--purple); border-bottom-color: var(--purple-pale); }
+  .section-block.avoided h3 { color: #0F766E; border-bottom-color: #99E6DE; }
+  .section-block.peaks h3 { color: #B45309; border-bottom-color: #FDE1A9; }
+  .section-block p { margin: 0 0 8px; font-size: 14.5px; line-height: 1.5; }
+  .mapping {
+    background: var(--blue-pale);
+    border-left: 3px solid var(--blue);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13.5px;
+    color: #2b3a55;
+    font-style: italic;
+  }
+  .mapping b { font-style: normal; color: var(--navy); }
+  .lessons {
+    background: #fff8e6;
+    border-left: 3px solid var(--amber);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13.5px;
+  }
+  .status-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+  }
+  .status-actual { background: var(--green-pale); color: var(--green); }
+  .status-projected { background: var(--amber-pale); color: var(--amber); }
+  .status-notyetavailable { background: #eee; color: #888; }
+
+  .source-line { margin-top: 14px; font-size: 12px; color: var(--gray); word-break: break-all; }
+  .source-line a { color: var(--blue); }
+
+  table { border-collapse: collapse; width: 100%; background: #fff; font-size: 13px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--navy); color: #fff; position: sticky; top: 0; }
+  tr:nth-child(even) td { background: var(--gray-light); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 26px; }
+  .clickable-row { cursor: pointer; }
+  .clickable-row:hover td { background: var(--blue-pale) !important; }
+  .table-heading { font-size: 15px; font-weight: 700; color: var(--navy); margin: 0 0 10px; }
+
+  .ref-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .ref-grid { grid-template-columns: 1fr; } }
+  .ref-card h4 { color: var(--navy); font-size: 14px; margin: 0 0 8px; }
+  .ref-card ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+  .ref-card li { margin-bottom: 8px; }
+
+  #view-profile, #view-table, #view-ref, #view-map, #view-roadmap { display: none; }
+  #view-profile.active, #view-table.active, #view-ref.active, #view-map.active, #view-roadmap.active { display: block; }
+
+  #leafletMap { height: 560px; border-radius: 10px; border: 1px solid var(--border); }
+  .map-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 12px; color: var(--gray); margin: 12px 2px 0; }
+  .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .leaflet-popup-content b { color: var(--navy); }
+  .popup-link { color: var(--blue); cursor: pointer; font-size: 12px; text-decoration: underline; }
+
+  .rm-section-title { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--blue-pale); }
+  .rm-phase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 14px 0 22px; }
+  .rm-phase-card { background: var(--blue-pale); border-radius: 10px; padding: 16px; border-top: 4px solid var(--navy); }
+  .rm-phase-card h4 { margin: 0 0 4px; color: var(--navy); font-size: 14.5px; }
+  .rm-phase-card .budget { font-size: 22px; font-weight: 700; color: var(--navy); margin: 4px 0 8px; }
+  .rm-phase-card ul { margin: 6px 0 8px; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+  .rm-phase-card .funding-mix { font-size: 12px; color: var(--gray); font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="brandbar">
+  <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 598 171" width="598" height="171">
+  <rect x="10" y="18" width="170" height="170" rx="40" fill="#1B7A4B"/>
+  <text x="95" y="122" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="66" fill="#FFFFFF" text-anchor="middle">CU</text>
+  <text x="208" y="98" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="72" fill="#111111">CapUtility</text>
+  <text x="211" y="150" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="28" letter-spacing="6" fill="#788089">ADVISORS</text>
+</svg>
+
+  <div class="brand-contact">CapUtility Advisors &nbsp;·&nbsp; <a href="https://caputility.com" target="_blank" rel="noopener">caputility.com</a></div>
+</div>
+
+<header>
+  <h1>Thermal Energy Network Projects — TAPC &amp; oTherm Explorer</h1>
+  <p>18 North American TEN / district-energy projects, mapped to the TAPC business models, financing proposals, and the oTherm.org metering methodology — including policy drivers, decarbonization impact, ongoing M&amp;V, and the TAPC capital markets roadmap.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <div>
+      <label for="projSelect">Project</label>
+      <select id="projSelect"></select>
+    </div>
+    <button class="tabbtn active" data-view="profile" onclick="setView('profile')">Project Profile</button>
+    <button class="tabbtn" data-view="map" onclick="setView('map')">Map</button>
+    <button class="tabbtn" data-view="table" onclick="setView('table')">Compare All (Tables)</button>
+    <button class="tabbtn" data-view="roadmap" onclick="setView('roadmap')">TAPC Roadmap</button>
+    <button class="tabbtn" data-view="ref" onclick="setView('ref')">TAPC / oTherm Reference</button>
+    <div class="spacer"></div>
+    <div class="count" id="countLabel"></div>
+  </div>
+
+  <div id="view-profile" class="active"></div>
+
+  <div id="view-map">
+    <div class="card">
+      <div class="proj-title">Project Locations</div>
+      <div class="proj-meta">Click a pin to jump to that project's profile. Scroll to zoom, drag to pan.</div>
+      <div id="leafletMap"></div>
+      <div class="map-legend" id="mapLegend"></div>
+    </div>
+  </div>
+
+  <div id="view-table">
+    <div class="table-heading">Business Model, Financing &amp; Metering</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Project</th><th>Owner</th><th>Business Model</th><th>Financing</th><th>Metering</th></tr>
+        </thead>
+        <tbody id="tableBody1"></tbody>
+      </table>
+    </div>
+
+    <div class="table-heading">Policy Drivers, Decarbonization &amp; Ongoing M&amp;V</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Project</th><th>Policy Driver</th><th>Decarbonization / Cost Savings</th><th>Ongoing M&amp;V</th></tr>
+        </thead>
+        <tbody id="tableBody2"></tbody>
+      </table>
+    </div>
+
+    <div class="table-heading">Avoided Emissions &amp; Avoided Electric Peaks</div>
+    <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Project</th><th>Avoided Emissions</th><th>Avoided Electric Peaks</th></tr>
+          </thead>
+          <tbody id="tableBody3"></tbody>
+        </table>
+      </div>
+  </div>
+
+  <div id="view-roadmap"></div>
+
+  <div id="view-ref"></div>
+
+</div>
+
+<script>
+const DATA = {"tapc_reference": {"business_models": ["Ground Loop as a Service — third party owns the loop, building owns the heat pump; capacity + variable geoexchange fees.", "Thermal Energy Services Agreement (TESA) — owner sells thermal energy per MMBtu, like district steam, under a standardized services contract.", "Energy Services Agreement (ESA) — ESCO finances the retrofit, paid from a share of verified energy-cost savings (IPMVP).", "District Geothermal Utility — shared loop serves a campus or neighborhood under a capacity/consumption tariff.", "Renewable Thermal PPA — developer owns the system, sells thermal output at a fixed/indexed price over 15–25 years.", "Renewable Thermal Credits (RTCs) — geoexchange registered as RTCs and sold for compliance or voluntary demand."], "financing_proposals": ["Standardized TESA / EPC / performance-bond contract templates pre-cleared for tax-equity and senior debt", "Per-project SPV/LLC structuring so loop-field assets are financeable and separable from the building", "Thermal credit-risk & valuation methodology (DSCR sensitivity under P10/P50/P90 load, geological risk, LL97 penalty-avoidance, ITC-adder verification)", "Mock multi-campus TESA-backed ABS pool with rating agencies to surface legal/data/structural gaps", "Blended public-private funding: DOE/NREL and state-program grants in Year 1, tapering to industry dues/sponsorship by Year 3"], "otherm_methodology": ["Revenue-grade, uncertainty-quantified metering: 15-minute interval EWT/LWT (entering/leaving water temperature), system COP, ton-hours delivered vs. contracted", "Thermal imbalance tracking and geological metadata, anonymized to project level", "Open-source, shared performance database (not proprietary to one operator) so contracts, lenders and rating agencies can underwrite off common data", "Data anchors specific contract types: variable fees (Ground Loop as a Service), revenue-grade billing (TESA), IPMVP savings baselines (ESA)"]}, "projects": [{"id": 1, "name": "False Creek Neighbourhood Energy Utility (NEU)", "location": "Southeast False Creek / Mount Pleasant, Vancouver, BC", "owner": "City of Vancouver (municipal)", "archetype": "Modern low-carbon district utility", "stats": "47 buildings, 5.75M sq ft (22.6M at full build-out), 9.8 MW thermal, sewage heat recovery >300% efficiency", "business_model": {"summary": "City-owned and operated utility, self-funded through cost-based rates. Not a third-party or investor-owned structure — the municipality is both owner and operator of the loop and the energy center.", "tapc_mapping": "Closest in shape to TAPC's District Geothermal Utility model (shared infrastructure, tariff-recovered), but publicly owned rather than privately capitalized — outside TAPC's target asset class unless the City opens future expansion to third-party co-investment."}, "financing": {"summary": "Public funding + grants + self-funded utility model; $20M cited for one expansion phase. No tax equity, ABS, or private project financing involved.", "tapc_mapping": "Represents the public-capital alternative TAPC is not designed to replace, but a useful contrast: a standardized credit-risk methodology could let Vancouver-style expansions blend in private capital instead of scaling public funding alone."}, "metering": {"summary": "Not publicly specified. No disclosed interval data, COP reporting, or open performance database.", "otherm_mapping": "Clear gap versus oTherm's open, uncertainty-quantified metering standard — a candidate for future engagement if the utility ever seeks outside capital or investor scrutiny."}, "lessons": "Sewage heat recovery is proven at scale (>300% efficiency); works well in dense, master-planned districts.", "sources": ["https://vancouver.ca/home-property-development/southeast-false-creek-neighbourhood-energy-utility.aspx"], "coords": [49.2681, -123.1146], "policy_drivers": {"summary": "Connection is mandatory for new development in the service area under Vancouver's Energy Utility System By-law 9552, reinforced by rezoning policy requiring low-carbon heat for new buildings. The City owns the NEU outright, giving it direct control over investment decisions, rate-setting and GHG performance targets, aligned with Vancouver's Climate Emergency Action Plan."}, "decarbonization": {"status": "actual", "summary": "70% of energy currently comes from renewable sewage heat recovery (>300% efficiency via heat pumps); the City is evaluating a path to 100% renewable supply by 2030. No single consolidated CO2-avoided figure is publicly published, but the mandatory-connection bylaw effectively locks in avoided fossil-fuel combustion across the entire service area versus a conventional gas-heated baseline."}, "mv_ongoing": {"summary": "Operated and maintained directly by the City; performance is tracked internally against City-set GHG performance targets and rate filings, but no open or third-party-audited interval performance data is published."}, "avoided_emissions": {"status": "actual", "summary": "Sewage heat recovery displaces natural-gas boiler heat that would otherwise be burned in each building; the City of Vancouver reports the NEU cuts GHG emissions roughly 60–70% relative to a conventional gas-boiler baseline for connected floor area. The avoided quantity is a counterfactual (gas boilers not built and not run), distinct from the utility's own reported operating emissions. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "A clean example of waste-heat recovery where the avoided-emissions counterfactual is the dominant climate benefit — supports carrying a declared-counterfactual avoided-emissions line in TAPC's standardized reporting package."}, "avoided_peaks": {"status": "not yet available", "summary": "No published quantification of electric peak avoided. Because the NEU serves heating and DHW rather than displacing electric cooling, the peak-avoidance mechanism is winter (avoided electric resistance/heat-pump load) rather than summer.", "tapc_mapping": "Winter peak avoidance in heating-dominated, hydro-supplied grids is a real but unpriced value stream — a candidate metric for TAPC's data standard."}}, {"id": 2, "name": "Creative Energy – Vancouver Downtown Steam Network", "location": "Downtown Vancouver peninsula, BC", "owner": "Private – Creative Energy", "archetype": "Legacy steam, transitioning to hot water", "stats": "200–215 buildings, 45–50M sq ft, 280 MW steam plant", "business_model": {"summary": "Fully private utility model: Creative Energy owns and operates the steam plant and distribution network and sells thermal service to connected buildings under long-term (though not publicly detailed) service agreements.", "tapc_mapping": "A private thermal-utility precedent for TAPC's Thermal Energy Services Agreement (TESA) model — owner sells energy, not equipment — but at legacy scale and financed entirely on the company's own balance sheet rather than through standardized, capital-markets-ready contracts."}, "financing": {"summary": "Fully private utility model; cost and deal structure not publicly disclosed. Regulated by the BC Utilities Commission.", "tapc_mapping": "A regulated-private hybrid that sits outside TAPC's third-party ABS thesis, but shows a mature private thermal utility can operate profitably at legacy scale — evidence for the credit-risk case TAPC wants to make to rating agencies."}, "metering": {"summary": "Not publicly specified.", "otherm_mapping": "No visible interval or COP data; gap versus oTherm's transparency standard."}, "lessons": "Long-lived core system (50+ years); decarbonizing legacy steam is complex but feasible.", "sources": ["https://creative.energy/projects/vancouver-core"], "coords": [49.2827, -123.1207], "policy_drivers": {"summary": "Regulated by the British Columbia Utilities Commission (BCUC); Vancouver's low-carbon energy policy requires all new customers to take low-carbon service, while existing customers can choose their decarbonization pace. Creative Energy's 'Decarbonization Project' (adding zero-carbon electric boilers) was approved by the BCUC in 2022."}, "decarbonization": {"status": "projected", "summary": "The BCUC-approved Decarbonization Project is projected to cut Creative Energy's CO2 emissions by 15,100 tonnes/year (about a third of its GHG intensity), with a further 9,600 tonnes/year avoided from future system extensions — versus the legacy natural-gas-fired steam baseline."}, "mv_ongoing": {"summary": "As a BCUC-regulated utility, Creative Energy reports system performance and emissions progress through BCUC proceedings and rate filings; granular interval or building-level data is not publicly available."}, "avoided_emissions": {"status": "projected", "summary": "The gas-to-electric steam plant conversion is expected to avoid the emissions of continued gas-fired steam production for ~180 downtown buildings without on-site retrofit, on BC Hydro's predominantly hydroelectric grid. No public per-year mtCO2e avoided figure.", "tapc_mapping": "Demonstrates the 'decarbonize the plant, not the building' pathway — avoided emissions accrue to hundreds of buildings from a single capital project, the same leverage argument TAPC makes for network-scale investment."}, "avoided_peaks": {"status": "not yet available", "summary": "Not quantified publicly. Plant electrification will increase rather than decrease electric demand, though thermal storage at the plant can shape when that demand lands.", "tapc_mapping": "Plant-side electrification shifts the peak question from avoidance to flexibility — TAPC should treat dispatchable thermal storage as a grid-value stream in its own right."}}, {"id": 3, "name": "Con Edison District Steam System", "location": "Manhattan, NYC", "owner": "Con Edison (investor-owned utility)", "archetype": "Legacy district steam + cogeneration, regulated rate base", "stats": "~1,500–1,700 buildings, ~500M sq ft, ~27B lbs steam/yr, ~100–105 miles of piping; cogeneration (East River Units 1 &amp; 2, East River Unit 6, Brooklyn Navy Yard) supplies the majority of production. 2024 system emissions 818,047 mtCO2e (20-yr GWP), −70% vs. 1990; Con Ed facilities only −80% vs. 1990 (Exhibit CETP-2).", "business_model": {"summary": "Referred to as the <b>district steam</b> system, consistent with IDEA's description of district energy systems. Fully utility-owned and operated, sold under regulated service agreements and the NY PSC-approved Steam Tariff — not a third-party or project-financed structure. Critically, the system is funded through <b>both the Electric and Steam tariffs</b>: district steam is part of the electric system by way of (a) cogeneration and (b) steam-energized DERs. Portions of Con Edison's cogeneration units — specifically the gas turbines and all fuel fired in them — are funded by electric customers under the 2004 Steam Rate Order and the ERRP Above/Below Market cost allocation (2009 ERRP Allocation Study). Electric customers also pay for the Steam Tariff discount on newly added steam cooling, because that cooling reduces summer electric peak.", "tapc_mapping": "Functions like TAPC's TESA model (thermal sold as a metered service) but executed through a regulated rate base rather than a standardized, financeable third-party contract. The dual-tariff cost allocation is the important lesson for TAPC: where a thermal asset delivers quantifiable electric-system value (peak avoidance, in-city generation, deferred T&amp;D), that value can be monetized from a second revenue pool — a structural precedent for TAPC's work on stacking grid-value payments onto thermal revenue in credit models."}, "financing": {"summary": "Ratepayer-funded through PSC-approved rate cases (Case 25-S-0741; recent plan ~$77.8M/yr rate increases over three years, ~$45M/yr capital investment), with cogeneration fuel costs allocated between electric and steam customers under the Incremental Method in use since 1978. For customer connections, the Steam Tariff (Leaf 16) provides <b>on-bill financing</b> covering incremental connection costs not otherwise covered by the tariff for infrastructure that will ultimately be owned by Con Edison — i.e. the service pipe and metering station.", "tapc_mapping": "A different capital source than TAPC's ABS/tax-equity thesis, but the tariff's on-bill financing mechanism for customer connection costs is a direct analog to what TAPC needs at the building interface: a standardized, low-friction way to fund the last-100-feet connection. Worth modeling as a template for TAPC's building-connection financing product."}, "metering": {"summary": "Customer-level steam metering on a mass/volume basis (converted at ~1.2 kBtu per pound of superheated steam), not thermal-network-style BTU / EWT-LWT metering. Cogeneration output is separately metered and allocated between the electric and steam systems by two PSC-approved methods (see Avoided Emissions).", "otherm_mapping": "Steam metering is a different measurement paradigm than oTherm's geoexchange-specific EWT/LWT and COP metrics — not directly comparable. However, the Unit 6 thermal-allocation calculation (1,185 BTU/lb heat rate used to apportion fuel between outputs, CETP-12 p.402) is functionally a standardized thermal-accounting protocol, and is the closest incumbent analog to what oTherm is trying to standardize for geoexchange. Con Edison's newer UTEN pilots are where oTherm-style metering can actually be adopted."}, "lessons": "Massive scalability, and steam remains viable in dense cores where footprint has real estate value. Three transferable lessons for TAPC: (1) a thermal system serving an electric-system function can legitimately draw revenue from both tariffs — dual cost allocation is 45+ years of settled regulatory practice; (2) default emissions factors materially misprice district energy, so system-specific, seasonally resolved, auditable measurement is a competitive necessity, not a nicety; (3) a carbon law with fixed commodity coefficients and a one-sided electrification credit can penalize a thermal system that is already outperforming the law — policy design risk belongs in TAPC's standardized risk framework.", "sources": ["https://www.coned.com/", "https://dps.ny.gov/psc-adopts-new-con-edison-steam-rates", "https://www.nyc.gov/content/climate/pages/initiatives/nyc-greenhouse-gas-inventories", "https://accelerator.nyc/ll97/beneficial-electrification", "https://www.nyc.gov/assets/buildings/pdf/deduct_alt.pdf", "Case 25-S-0741, Con Edison Steam Rate Filing — Clean Energy Transition Panel Exhibits CETP-2, -3, -4, -6, -7, -8, -9, -10, -11 (2025)", "Exhibit (CETP-12), Responses to DPS Set DPS-22 Q.420-Supp-1 and NYC Set NYC-12 Q.151, pp.399–403 (cogeneration emissions allocation methods)", "East River Repowering Project Cost Allocation Study, Exhibit (ERRP AP-1), Cases 07-S-1315 and 09-S-0029, May 7, 2009 (see p.66, steam air conditioning peak avoidance)", "2004 Con Edison Gas and Steam Rate Order, pp.55–61 (counterfactual avoided emissions; cogeneration emissions allocation)", "Con Edison Steam Tariff, Leaf 16 (on-bill financing for customer connections)", "NYISO Load &amp; Capacity Data Report (“Gold Book”), p.14 (winter peak forecast treatment of district steam buildings)", "GHG Protocol, Calculating CO2 Emissions from the Combustion of Standard Fuels and from Electricity/Steam Purchase (cogeneration allocation guidance)"], "coords": [40.7484, -73.9857], "policy_drivers": {"summary": "<b>Most buildings served by the system are covered by NYC Local Law 97</b> (buildings 25,000+ sq ft, or multi-building sites 50,000+ sq ft; penalties of $268/mtCO2 over the limit) — utility generating stations are explicitly exempt from LL97. The system also operates under the state's CLCPA. Con Edison's corporate commitment is <b>100% net-zero GHG district steam by 2050</b>.<br><br><b>Coefficient authority — important clarification:</b> the LL97 steam coefficient for 2024–2029 (0.00004493 mtCO2e/kBtu) was established by City Council in the Law itself; DOB does <i>not</i> have authority to change it (per DOB's testimony to the Steam Rate Case LL97 panel). DOB does have authority to change coefficients by rule for 2030–2034 (currently 0.00004320). Electricity and steam coefficients are not prescribed for 2035 onward.<br><br><b>Steam is already below the law.</b> The 2020–2024 actual steam emissions coefficient is 0.00004287 mtCO2e/kBtu — 4.6% below the 2024–2029 LL97 coefficient and 0.8% below the 2030–2034 coefficient (Exhibit CETP-6). There is no clear procedural path to amending LL97 or reflecting this lower actual coefficient.<br><br><b>Asymmetric electrification incentive.</b> DOB's 2023 beneficial electrification credit gives buildings installing heat pumps a negative coefficient of −0.0013 tCO2e/kWh (2x, 2021–2026) or −0.00065 tCO2e/kWh (1x, 2027–2029), bankable against future penalties. There is <i>no</i> equivalent credit for staying on or connecting to district steam — even though NYC's 2023 electric grid intensity was 3.32x higher than district steam per kBtu (Exhibit CETP-9).<br><br><b>LL154 &amp; the NY All-Electric Buildings Act:</b> connecting to district steam — a thermal resource — is <b>compliant</b> with laws prohibiting on-site combustion for heating. Like electricity, thermal service involves no on-site combustion. A recent high-rise new-construction building chose steam for the real-estate value of its small mechanical footprint (Fall 2025 Con Edison Steam Webinar case study, Gary Pomerantz, WSP)."}, "decarbonization": {"status": "actual", "summary": "Total steam system emissions fell from 2,825,728 mtCO2e (1990) to 818,047 mtCO2e (2024), 20-yr GWP — a 70% reduction on a 5-yr average basis, and 80% for Con Ed facilities alone, driven largely by phasing out Fuel Oil #6 (by 2019) and Fuel Oil #4 (by end of 2024). Projected emissions excluding new decarbonization programs: 593,692 (2026) falling to 549,675 mtCO2e (2030), with a 2029 spike to 722,324 from a planned cogen unit outage (CETP-3).<br><br><b>Early Deployment decarbonization portfolio</b> (CETP-11): 74th Street electric boiler, East River industrial heat pump, Steam Digital Optimization Solution Phase 2, and an RNG pilot — combined annual reductions of 182,900–259,600 mtCO2 depending on grid coefficient scenario, i.e. 26–35% below the current LL97 coefficient and 22–31% below the 2020–2024 actual average. Weighted average abatement cost $44/mtCO2 ($10 SDOS, $40 electric boiler, $56 industrial heat pump). Against $204M of capital, NY DEC Social Cost of Carbon NPV is $966M at a 2% discount rate — a 4.7x benefit-cost ratio (CETP-8).<br><br><b>Cost savings to customers:</b> because the system already outperforms its LL97 coefficient, every connected building's compliance position improves without any on-site retrofit — the distinguishing economic feature of district thermal service under a coefficient-based carbon law."}, "mv_ongoing": {"summary": "Con Edison reports system-wide steam GHG emissions to NYC annually; the data is public via the NYC Greenhouse Gas Inventory (Mayor's Office of Climate &amp; Environmental Justice). Note the NYC GHG inventory reports steam emissions in different units than LL97 uses, convertible via the formula in Exhibit CETP-9 (0.0863 kgCO2e/kg steam → 0.000032621 mtCO2/kBtu; 1.2 kBtu = 1 lb superheated steam). Con Edison also reports total emissions in its sustainability and ESG disclosures, and emissions/fuel workpapers are filed and cross-examined in rate cases (Case 25-S-0741). Customer-level steam metering supports regulated billing; LL97's Good Faith Effort pathway requires continuous building-level energy data from customers, but Con Edison does not publish open interval or system-level thermal performance data."}, "avoided_emissions": {"status": "actual", "summary": "<b>Caveat on default factors:</b> EPA Portfolio Manager default emissions factors for district energy are not accurate for specific systems. Each district energy system's emissions profile is unique, varying with fuel mix, the share served by cogeneration, and cogeneration efficiency. NYC district steam intensity varies <i>seasonally</i> — monthly average 0.00002463 (June) to 0.00006462 (October) mtCO2e/kBtu, 5-yr average 0.00004287; October is highest due to low loads plus mandatory alternate-fuel capability testing, and summer is lowest because cogeneration carries a larger share (CETP-4).<br><br><b>Two PSC-approved cogeneration allocation methods</b> (CETP-12 pp.400–403): (1) <i>Waste-heat capture</i> — East River Repowering Project Units 1 &amp; 2 (c.2005): per the 2004 Gas and Steam Rate Order the PSC assigned emissions from all fuel fired in the gas turbines to the electric system, so steam from the HRSGs carries zero assigned emissions. (2) <i>Extraction</i> — East River Unit 6 (c.1951) and Brooklyn Navy Yard: a thermal allocation using a 1,185 BTU/lb heat rate apportions fuel (gas and oil) between electric and steam customers in proportion to energy delivered. While not the most common allocation methods, both are acceptable under GHG Protocol guidance on cogeneration, which admits everything from 100% allocation to one output through various partial-allocation methods.<br><br><b>Cogeneration avoided emissions</b> (CETP-10, 20-yr GWP): comparing actual cogeneration emissions to a non-cogeneration alternate case producing the same steam and electricity separately — 906,947 mtCO2e avoided (2020), 1,029,191 (2021), 880,006 (2022), 1,099,934 (2023), <b>1,111,383 (2024)</b>, i.e. a 24–30% emissions reduction versus conventional separate production.<br><br><b>Counterfactual peaker displacement:</b> ERRP is among the least emissions-intensive electric generation in NYISO Zone J; absent it, that power would likely come from less efficient in-city sources (CETP-12 p.400). The counterfactual avoided emissions are detailed in the 2004 Steam Rate Order (pp.55–61) and the 2009 ERRP Allocation Study.", "tapc_mapping": "Avoided emissions are a distinct, monetizable value stream from direct emissions reduction, and the Con Edison record shows they can be quantified rigorously enough to survive regulatory litigation. TAPC's standardized reporting package should carry an avoided-emissions line — with a declared counterfactual and allocation method — alongside direct reductions, so thermal assets are not penalized by default emissions factors that ignore system-specific performance."}, "avoided_peaks": {"status": "actual", "summary": "By using thermal resources for cooling, district energy systems avoid electric peaks in both summer and winter. Buildings using district steam for absorption cooling in NYC avoid <b>over 100 MW of current summer electric peak</b>, with significant headroom — historical peak avoidance reached <b>approximately 350 MW</b> (2009 ERRP Cost Allocation Study, p.66: “Steam air conditioning avoids approximately 350 MW of peak summer electric load and related electric…”). The Steam Tariff discount for newly added steam cooling is funded by electric customers precisely because of this peak benefit.<br><br><b>Winter peak is the unpriced risk.</b> NYISO is generally <i>not</i> forecasting electrification of district steam buildings in its winter peak forecast, while noting that the additional load “could be significant” (NYISO Gold Book, p.14). Peak avoidance through thermal resources is a central driver of district energy expansion in Europe (cf. Ramboll, “District heating: the building block to Germany's energy independence”).", "tapc_mapping": "Avoided electric peak is the clearest example of thermal infrastructure generating electric-system value that a thermal-only revenue model fails to capture. TAPC's credit methodology should treat quantified peak avoidance as a candidate revenue stream (capacity value, non-wires alternative payments, or tariff-funded discounts as Con Edison already does) — it improves debt service coverage without relying on thermal offtake growth."}}, {"id": 4, "name": "District Energy St. Paul", "location": "Saint Paul, MN", "owner": "Nonprofit district energy utility", "archetype": "Biomass-integrated district heating/cooling", "stats": "200+ buildings (heating), 120+ (cooling); largest hot-water district system in North America", "business_model": {"summary": "Nonprofit utility origin as a 1983 public-private demonstration (City of St. Paul, State of MN, US DOE, downtown business community); now funds ongoing O&M from customer heating/cooling rates.", "tapc_mapping": "A nonprofit variant of TAPC's District Geothermal Utility model — shared loop, tariff-recovered — but biomass-fired rather than geoexchange, and structured as a nonprofit rather than an investor-owned or project-financed entity."}, "financing": {"summary": "Blended public-private origin (federal/state/local seed funding) transitioning to self-sustaining customer revenue; recently pursued a $152M EPA grant for wastewater heat recovery.", "tapc_mapping": "A real-world precedent for TAPC's own phased funding model — catalytic public grants in the early years, tapering to a self-sustaining revenue base — worth citing directly in TAPC's funding-phasing narrative."}, "metering": {"summary": "Not publicly specified.", "otherm_mapping": "No disclosed interval data; gap versus oTherm."}, "lessons": "Strong example of a biomass-integrated thermal network sustained through a public-private funding transition.", "sources": ["https://www.districtenergy.com/about/"], "coords": [44.9482, -93.093], "policy_drivers": {"summary": "Originated as a 1983 US DOE / State of Minnesota / City of St. Paul demonstration project; today it operates under Minnesota and St. Paul clean-energy goals and is a St. Paul Climate Action Plan-listed strategy. District Energy has pursued a federal Climate Pollution Reduction Grant (with the regional planning agency and city) to fund wastewater heat recovery from the Metro Wastewater Treatment Plant."}, "decarbonization": {"status": "actual", "summary": "Carbon emissions cut 68% between 2000 and 2022; up to 50% of current annual heat production comes from renewable wood waste (biomass). The company has set a 100% carbon-neutrality goal by 2050 (targeting ~7%/year reduction), and if the pending federal wastewater-heat grant is awarded, up to 92% of energy could come from carbon-free/neutral sources by roughly 2028."}, "mv_ongoing": {"summary": "District Energy states it has improved efficiency and cut emissions through enhanced controls and monitoring technology and by optimizing customer building performance — an ongoing internal M&V practice, though not published as an open dataset."}, "avoided_emissions": {"status": "actual", "summary": "Biomass CHP plus a large hot- and chilled-water distribution system displaces individual building boilers and chillers across ~80% of downtown St. Paul; the utility reports its biomass CHP avoids roughly 280,000 tons of CO2 per year relative to the coal-and-gas counterfactual it replaced. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "A long-operating, nonprofit-owned system with a defensible avoided-emissions record — useful as a decades-long track record supporting thermal asset credit quality."}, "avoided_peaks": {"status": "actual", "summary": "District chilled water displaces hundreds of individual building chillers, avoiding the coincident summer electric peak those chillers would create; the CHP also supplies in-city generation. Magnitude not separately published in MW. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "Same mechanism as Con Edison's steam cooling — supports generalizing avoided electric peak as a standard TAPC reporting line for any system serving cooling."}}, {"id": 5, "name": "Vicinity Energy – Boston", "location": "Boston, MA", "owner": "Private – Vicinity Energy", "archetype": "Legacy steam, electrification overlay", "stats": "245 buildings, 72M sq ft, 29 miles of piping, 42 MW electric boilers installed, 35 MW heat pumps planned", "business_model": {"summary": "Private utility model selling thermal service under regulated + contracted customer agreements; part of Vicinity's 19-system, 12-city platform. Launching “eSteam” (carbon-free thermal via electrification) as a product.", "tapc_mapping": "A private, multi-city TESA-style operator already at scale — the closest existing analog to what TAPC wants standardized contracts to enable for smaller/newer entrants."}, "financing": {"summary": "Corporate/asset-level green loan financing (e.g., a BNP Paribas-arranged green loan, the first for a US district energy company, aligned to EU Taxonomy criteria).", "tapc_mapping": "Shows lenders will finance thermal decarbonization at the corporate level; TAPC's securitization path would let smaller operators tap the same capital markets Vicinity accesses today, at a project rather than corporate level."}, "metering": {"summary": "Steam/hot-water metering; no public interval or COP disclosure found.", "otherm_mapping": "Gap versus oTherm's open EWT/LWT/COP standard — Vicinity's own performance data stays internal."}, "lessons": "Electrification overlay (adding heat pumps/electric boilers to legacy steam) is a viable transition path for large existing networks.", "sources": ["https://www.vicinityenergy.us/locations/boston/"], "coords": [42.3505, -71.0645], "policy_drivers": {"summary": "Boston's BERDO 2.0 (Building Emissions Reduction and Disclosure Ordinance) requires large buildings to reach net-zero by 2050, with fines of $1,000/day for non-compliance over 35,000 sq ft. Vicinity markets district steam/eSteam directly as a BERDO 2.0 compliance pathway for connected buildings."}, "decarbonization": {"status": "projected", "summary": "No independently verified system-wide CO2 figure is published; Vicinity's own materials frame the 42 MW of installed electric boilers and 35 MW of planned heat pumps as enabling connected buildings to avoid BERDO 2.0 penalties by shifting emissions to Vicinity's centrally-decarbonizing plant rather than requiring costly on-site retrofits."}, "mv_ongoing": {"summary": "Not publicly specified; Vicinity reports system-level decarbonization milestones (e.g., electric boiler commissioning) but does not publish open building- or interval-level performance data."}, "avoided_emissions": {"status": "projected", "summary": "eSteam™ (industrial heat pumps + electric boilers on renewable power) is projected to avoid the gas-fired steam emissions currently serving ~70M sq ft of Boston/Cambridge floor area, with the company targeting net-zero by 2050 and citing a first-phase heat pump displacing the equivalent of tens of thousands of tons of CO2 annually.", "tapc_mapping": "The private-capital analog to Con Edison's electric boiler / industrial heat pump portfolio — a direct comparison point for TAPC's cost-of-abatement benchmarking ($/mtCO2)."}, "avoided_peaks": {"status": "not yet available", "summary": "Not published. Boston's district steam serves absorption cooling in a subset of buildings; electrification of the plant will add load rather than avoid peak absent storage.", "tapc_mapping": "Reinforces that peak impact must be reported with a sign, not assumed beneficial."}}, {"id": 6, "name": "Vicinity Energy – Baltimore", "location": "Baltimore, MD", "owner": "Private – Vicinity Energy", "archetype": "Hybrid fuel mix, transitional decarbonization", "stats": "Steam + hot water + chilled water; waste-to-energy (incinerator steam) plus gas/oil boilers", "business_model": {"summary": "Same private multi-city TESA-style Vicinity platform as Boston, with a hybrid (waste-to-energy + fossil) fuel mix reflecting a transitional rather than electrification-first strategy.", "tapc_mapping": "Illustrates that TAPC-style standardization needs to accommodate hybrid/transitional fuel mixes, not just pure electrified geoexchange, if it wants to cover the existing district-energy fleet."}, "financing": {"summary": "Utility financing plus incentive-supported upgrades (e.g., efficiency programs); same corporate green-loan access as the wider Vicinity platform.", "tapc_mapping": "Same corporate-financing precedent as Boston; TAPC's project-level ABS path is complementary, not a replacement."}, "metering": {"summary": "Not publicly specified.", "otherm_mapping": "Gap versus oTherm."}, "lessons": "Incremental decarbonization (renewable-fraction blending) can be a pragmatic bridge strategy for legacy hybrid systems.", "sources": ["https://www.vicinityenergy.us/locations/baltimore/"], "coords": [39.2882, -76.6134], "policy_drivers": {"summary": "Maryland's Climate Solutions Now Act (SB 528) sets a 60% GHG reduction target by 2031 and net-zero by 2045; Baltimore is in the implementation phase of related building-emissions requirements. Vicinity's Baltimore system, with its waste-to-energy and hybrid fuel base, positions incrementally toward these state targets rather than full electrification-first."}, "decarbonization": {"status": "projected", "summary": "Not separately quantified; framed by Vicinity as a transitional decarbonization pathway (renewable-fraction blending) rather than a fixed CO2-avoided figure, consistent with the state's 2031/2045 GHG targets."}, "mv_ongoing": {"summary": "Not publicly specified."}, "avoided_emissions": {"status": "not yet available", "summary": "No published avoided-emissions analysis for the Baltimore system.", "tapc_mapping": "Gap in the public record; TAPC's data standard would make this a default disclosure."}, "avoided_peaks": {"status": "not yet available", "summary": "No published avoided-peak analysis for the Baltimore system.", "tapc_mapping": ""}}, {"id": 7, "name": "Vicinity Energy – Trenton", "location": "Trenton, NJ", "owner": "Private – Vicinity Energy", "archetype": "Mid-scale legacy urban steam network", "stats": "12M sq ft; ~35,000 tons CO₂/yr avoided cited in marketing", "business_model": {"summary": "Same private Vicinity TESA-style platform, at a smaller mid-scale legacy steam network reflective of many second-tier US cities.", "tapc_mapping": "A useful mid-scale reference point for TAPC's commercial-heat-pump and district segments — shows TESA-style contracts must scale down, not just up."}, "financing": {"summary": "Not publicly detailed beyond the wider Vicinity corporate financing structure.", "tapc_mapping": "Same corporate-financing precedent as Boston/Baltimore."}, "metering": {"summary": "Not publicly specified.", "otherm_mapping": "Gap versus oTherm."}, "lessons": "Peak-demand reduction and water savings are marketed benefits alongside carbon reduction.", "sources": ["https://www.vicinityenergy.us/"], "coords": [40.217, -74.7429], "policy_drivers": {"summary": "New Jersey's Protecting Against Climate Threats (PACT) initiative (Executive Order 100, 2020) and the state's accelerated 100% clean-energy-by-2035 target underpin New Jersey's building-electrification push; the state Board of Public Utilities has directed electric utilities to propose building-decarbonization incentive programs, which Vicinity's Trenton electrification plans align with."}, "decarbonization": {"status": "projected", "summary": "Vicinity has stated an intent to use heat pumps for electrified steam production to reach net-zero carbon emissions in Trenton; a specific CO2-avoided figure is not publicly available, though marketing materials cite roughly 35,000 tons CO2/year in avoided emissions company-wide messaging for the Trenton system."}, "mv_ongoing": {"summary": "Not publicly specified."}, "avoided_emissions": {"status": "projected", "summary": "The Trenton system's CHP produces electricity and thermal energy from a single fuel input, avoiding the emissions of separate central-station generation plus building boilers — the same cogeneration counterfactual Con Edison quantifies in CETP-10, but not separately published here.", "tapc_mapping": "Another cogeneration case where the avoided-emissions method matters more than the headline number — supports standardizing the counterfactual, not just the result."}, "avoided_peaks": {"status": "not yet available", "summary": "No published avoided-peak analysis.", "tapc_mapping": ""}}, {"id": 8, "name": "Vicinity Energy – Washington, D.C.", "location": "Washington, DC", "owner": "Private – Vicinity Energy", "archetype": "Storage-integrated TEN, cooling dominant", "stats": "6 buildings, ~500K sq ft, 1 mile of underground piping (smallest system in this survey)", "business_model": {"summary": "Same private Vicinity platform, smallest-footprint example in the dataset — shows the model working at near-campus scale.", "tapc_mapping": "Closest Vicinity example to TAPC's smaller campus/building-cluster segment; relevant precedent for TESA templates aimed at single-campus deployments."}, "financing": {"summary": "Not separately detailed; part of the wider Vicinity corporate financing structure.", "tapc_mapping": "Same corporate-financing precedent as other Vicinity sites."}, "metering": {"summary": "Not publicly specified.", "otherm_mapping": "Gap versus oTherm."}, "lessons": "Storage integration supports cooling-dominant, smaller-footprint systems.", "sources": ["https://www.vicinityenergy.us/locations/washington-dc/"], "coords": [38.8951, -77.0269], "policy_drivers": {"summary": "Washington, DC's Building Energy Performance Standards (BEPS) expose non-compliant owners to penalties up to $10/sq ft of gross floor area, driving demand for Vicinity's district steam/chilled water as a compliance pathway for the smaller DC system."}, "decarbonization": {"status": "projected", "summary": "Not separately quantified for the DC system; positioned within Vicinity's company-wide decarbonization/eSteam strategy as a way for connected buildings to avoid BEPS penalties without on-site electrification capex."}, "mv_ongoing": {"summary": "Not publicly specified."}, "avoided_emissions": {"status": "not yet available", "summary": "No published avoided-emissions analysis for the D.C. system.", "tapc_mapping": ""}, "avoided_peaks": {"status": "not yet available", "summary": "No published avoided-peak analysis.", "tapc_mapping": ""}}, {"id": 9, "name": "CenTrio – Chicago", "location": "Chicago, IL", "owner": "Private (CenTrio; owned by QIC & Ullico)", "archetype": "Storage-integrated TEN, cooling dominant", "stats": "110–115 buildings, 54M sq ft, 16 miles of piping, 310,000 ton-hours ice thermal storage (~30 MW peak shaving)", "business_model": {"summary": "Private district-cooling utility selling thermal service to office, residential, hospitality, retail and mission-critical customers; heavy use of ice thermal storage rather than geoexchange.", "tapc_mapping": "A TESA-style private operator at large scale with storage as the key differentiator — shows TAPC's contract templates need explicit provisions for thermal storage assets, not just loop fields."}, "financing": {"summary": "Large institutional ownership (QIC/Ullico acquired CenTrio from Brookfield for ~$1.9B in 2021) and a recent $485M HoldCo refinancing (senior term loan, delayed-draw term loan, revolver, letter-of-credit facility).", "tapc_mapping": "Direct evidence that institutional infrastructure capital already prices and refinances district-thermal assets at scale — the market TAPC's securitization work aims to open up to smaller/newer geothermal operators as well."}, "metering": {"summary": "Chilled-water and ice-storage dispatch data exists operationally but is not published in an open, standardized format.", "otherm_mapping": "Gap versus oTherm's open-database approach, though the underlying revenue-grade metering infrastructure likely already exists internally."}, "lessons": "Public-private partnerships and thermal storage are core to CenTrio's growth strategy across multiple cities.", "sources": ["https://www.centrioenergy.com/our-districts/chicago/"], "coords": [41.885, -87.627], "policy_drivers": {"summary": "Illinois' Climate and Equitable Jobs Act (CEJA, 2021) targets 40% renewable energy by 2030 and 100% clean power by 2045; the City of Chicago has separately proposed (2024) a new-construction emissions ordinance limiting fuel carbon intensity. Buildings account for ~70% of Chicago's citywide GHG emissions, creating policy pressure that favors centralized, efficient district cooling like CenTrio's over individual building systems."}, "decarbonization": {"status": "actual", "summary": "No independently published system-wide CO2-avoided figure; the primary quantified impact is operational — 310,000 ton-hours of ice thermal storage providing roughly 30 MW of peak electric demand reduction, which lowers grid-level emissions intensity during peak periods versus conventional building-level electric chillers."}, "mv_ongoing": {"summary": "Not publicly specified; ice-storage dispatch and chilled-water delivery data exist operationally but are not published in an open format."}, "avoided_emissions": {"status": "projected", "summary": "District cooling for ~100 downtown Chicago buildings displaces individual building chillers; CenTrio cites large aggregate efficiency gains from central chilled water plus thermal ice storage versus distributed rooftop equipment, but publishes no system-wide mtCO2e avoided.", "tapc_mapping": "Efficiency-driven avoided emissions on a fossil-heavy grid — the avoided quantity is highly sensitive to the grid emissions factor assumed, which is exactly why TAPC needs a declared-counterfactual convention."}, "avoided_peaks": {"status": "actual", "summary": "Chicago's district cooling uses ice thermal storage charged overnight, shifting cooling load off the coincident summer peak for ~100 connected buildings. The load-shifting function is operationally central to the business, though MW avoided is not published. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "The clearest demonstrated case of thermal storage as a peak-shifting grid asset in the survey — a strong template for pricing thermal flexibility in TAPC revenue models."}}, {"id": 10, "name": "Enwave – Toronto Deep Lake Water Cooling", "location": "Toronto, ON", "owner": "Private (Enwave; IFM Investors & Ontario Teachers' Pension Plan, 50/50)", "archetype": "Natural-resource-driven TEN, cooling dominant", "stats": "80+ buildings; draws ~3.9°C water from 83m depth in Lake Ontario; largest renewable district cooling system in North America", "business_model": {"summary": "For-profit share-capital corporation selling chilled water as a service; ownership evolved from a City of Toronto/Borealis(OMERS) public-private structure (1999–2012) to full private infrastructure-investor ownership (2021, C$2.8B enterprise value).", "tapc_mapping": "The clearest real-world precedent in this survey for TAPC's end state: a standardized thermal-service contract and de-risked asset ultimately acquired by large infrastructure investors at an institutional valuation."}, "financing": {"summary": "Originally de-risked via public-private partnership (including a water-extraction fee exemption); recent expansion financed with a C$10M Low Carbon Economy Fund grant plus a $600M Canada Infrastructure Bank loan commitment.", "tapc_mapping": "A live example of blended public catalytic capital (grant + infrastructure bank debt) unlocking large-scale private investment — directly parallel to TAPC's own blended, phased funding model."}, "metering": {"summary": "Metering occurs at Energy Transfer Stations (heat exchangers); no public interval or COP data found.", "otherm_mapping": "Gap versus oTherm's open-data standard, though ETS-based metering architecture matches oTherm's building-interface approach structurally."}, "lessons": "Long-planned public-private partnerships can de-risk novel thermal resources (deep lake water) enough to attract institutional buyers a decade later.", "sources": ["https://www.enwave.com/locations/toronto"], "coords": [43.6426, -79.3871], "policy_drivers": {"summary": "Part of the City of Toronto's TransformTO Climate Action Strategy, targeting a 65% GHG reduction by 2030 and net-zero by 2040; the original public-private partnership included a City-granted exemption from water-extraction fees, which was critical to the project's original commercial viability."}, "decarbonization": {"status": "actual", "summary": "Avoids an estimated 79,000 tonnes of CO2 per year (equivalent to ~15,000 cars off the road) versus conventional mechanical chillers, eliminates ozone-depleting refrigerants entirely, saves an estimated 220 million gallons of water annually post-expansion, and avoids over 60 MW of peak electrical demand on Ontario's grid."}, "mv_ongoing": {"summary": "Metering occurs at each building's Energy Transfer Station; system-wide GHG and water-savings figures are periodically re-verified and published in company/city press materials at each major expansion milestone, though granular interval data is not open."}, "avoided_emissions": {"status": "actual", "summary": "Deep Lake Water Cooling displaces conventional chiller electricity for ~100 downtown buildings; Enwave reports the system avoids roughly 80,000 tonnes of CO2 annually versus conventional cooling, using approximately 90% less electricity than the equivalent building chillers. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "The strongest published avoided-emissions figure among cooling systems in the survey — a benchmark for what a well-documented avoided-emissions disclosure looks like."}, "avoided_peaks": {"status": "actual", "summary": "By replacing conventional chillers with lake-source cooling at ~90% lower electricity use, the system avoids on the order of 60–75 MW of summer electric peak in downtown Toronto — the same mechanism as Con Edison steam cooling, delivered by a different thermal source. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "Direct corroboration that cooling-side thermal networks are peak-avoidance assets; supports TAPC treating avoided summer peak as a quantifiable, financeable attribute."}}, {"id": 11, "name": "Eversource Geothermal Pilot", "location": "Framingham, MA", "owner": "Eversource (investor-owned utility)", "archetype": "Utility-owned networked geothermal (first of its kind in the US)", "stats": "36 buildings (24 residential), approved by MA DPU in 2020, piloted over two heating/cooling seasons", "business_model": {"summary": "Utility-owned and utility-financed networked geothermal system; Eversource covers behind-the-meter construction (including in-home heat pumps) and bills a flat monthly service fee based on heat-pump capacity ($10/month + $14.95/ton).", "tapc_mapping": "A regulated-utility variant not among TAPC's six third-party models, but conceptually closest to a Ground Loop as a Service / District Geothermal Utility hybrid — useful as the policy/regulatory precedent TAPC's private-capital model needs to coexist with."}, "financing": {"summary": "100% utility rate-base capital; no tax equity, ABS, or third-party ownership structure.", "tapc_mapping": "Different capital source than TAPC's private-capital thesis; TAPC could offer a complementary path for future non-utility geothermal networks in the same communities."}, "metering": {"summary": "Actively developing its metering and rate-structure approach; Eversource has stated it wants to understand “how the metering may work” before finalizing long-term rates.", "otherm_mapping": "A live, present-tense opportunity: Framingham is explicitly in the design phase for its metering approach, making it a strong candidate for direct engagement to adopt oTherm's EWT/LWT/COP methodology before it locks in a proprietary approach."}, "lessons": "Even a fully utility-financed model needs performance data to set durable, equitable long-term rates — reinforcing the case for standardized thermal metering industry-wide.", "sources": ["https://www.framinghamma.gov/3416/Geothermal-Pilot-Program", "https://www.eversource.com/residential/save-money-energy/clean-energy-options/geothermal-energy"], "coords": [42.2793, -71.4162], "policy_drivers": {"summary": "Enabled by a 2020 Massachusetts DPU order approving utility ownership of a networked geothermal pilot, and the DPU's subsequent Network Geothermal Guidelines. The pilot directly supports Massachusetts' 2050 net-zero mandate and was expanded with an $8.6M DOE federal grant (awarded to HEET, Eversource and the City of Framingham) in December 2025.<br><br><b>Cross-read to New York:</b> Massachusetts has no LL97-style building carbon coefficient, so Framingham's value case rests on rate design and emissions performance rather than compliance penalty avoidance. The New York experience — where a one-sided beneficial-electrification credit rewards heat-pump installation regardless of whether the grid is cleaner than the displaced thermal source (Exhibit CETP-9) — is a live cautionary precedent for how MA structures any future coefficient regime for networked geothermal."}, "decarbonization": {"status": "projected", "summary": "A formal CO2-avoided figure has not been published for this pilot; the explicit purpose of the two-season monitoring period is to evaluate whether the technology is a cost-effective, lower-carbon alternative to heating oil, propane and natural gas at utility scale before any figure is finalized."}, "mv_ongoing": {"summary": "Eversource is operating the system for two full heating/cooling seasons, providing regular data updates to the DPU on performance, customer satisfaction, cost and feasibility for replication — an explicit, DPU-mandated M&V program rather than informal monitoring. ~135 residential and commercial customers are instrumented as part of this evaluation."}, "avoided_emissions": {"status": "projected", "summary": "The Framingham loop displaces gas and oil heating in 36 buildings; the avoided-emissions counterfactual (continued fossil heating plus separately installed air-source heat pumps) has not been published as a mtCO2e figure. Ground-source COPs avoid the winter grid emissions an ASHP alternative would incur at low ambient temperature.", "tapc_mapping": "The GSHP-vs-ASHP avoided-emissions delta is a TAPC-relevant argument: networked geothermal avoids emissions relative to the electrification path that would otherwise occur, not just relative to fossil status quo."}, "avoided_peaks": {"status": "projected", "summary": "Networked geothermal's principal grid benefit is <b>winter</b> peak avoidance relative to air-source electrification: ground-source COPs hold up at design temperature where ASHP COPs collapse (NEEP cold-climate rating requires only COP 1.75 at 5°F). Not yet quantified in MW for Framingham.", "tapc_mapping": "Winter peak avoidance is the single most valuable and least monetized attribute of networked geothermal; TAPC should push for it to be metered (oTherm EWT/LWT/COP data makes it computable) and priced."}}, {"id": 12, "name": "Alexandra District Energy Utility (ADEU)", "location": "West Cambie, Richmond, BC (spreadsheet lists this as “Alexandria, BC”)", "owner": "City of Richmond (municipal)", "archetype": "Municipally owned ambient geoexchange district energy utility", "stats": "Mandatory-connection service area under Bylaw 8641; 2 geo-exchange fields plus gas-boiler/cooling-tower backup; minimum 70% of thermal energy from renewables", "business_model": {"summary": "City of Richmond owns and operates the Central Energy Plant, Distribution Piping System and each building's Energy Transfer Station (ETS); connection to the district system is mandatory for new construction in the service area.", "tapc_mapping": "The single closest real-world match to TAPC's District Geothermal Utility model — shared ambient loop, capacity + volumetric tariff — but municipally owned and mandate-driven rather than privately financed, so it sits just outside TAPC's third-party asset class."}, "financing": {"summary": "Municipal capital, recovered through Council-set rates under Bylaw 8641; no ABS, tax equity, or third-party financing involved.", "tapc_mapping": "Different capital source than TAPC targets, but the tariff design (two-part: capacity + volumetric) is a direct precedent for how TAPC-financed District Geothermal Utility contracts could be structured."}, "metering": {"summary": "Revenue-grade thermal energy meters at every ETS — flow meter, temperature sensors and an energy calculator — meeting international/Canadian thermal metering standards; data feeds both billing and system optimization. Two-part tariff confirmed in the survey: capacity charge $0.1017/sq ft plus volumetric charge $25.727/MWh.", "otherm_mapping": "The strongest metering match to oTherm's methodology in this survey — flow + temperature + energy-calculator instrumentation at every building interface mirrors oTherm's EWT/LWT and delivered-energy approach almost exactly. The main gap is that ADEU's data is used internally for billing, not published as an open, uncertainty-quantified dataset the way oTherm proposes."}, "lessons": "Mandatory-connection bylaws plus revenue-grade metering at every building interface is a proven way to guarantee both utilization and data quality — a design pattern TAPC's TESA templates could borrow for campus/district deployments.", "sources": ["https://luluislandenergy.ca/wp-content/uploads/2019/07/CITYHALL-4980829-v4-ADEU_Design_Guideline_Final.pdf"], "coords": [49.1849, -123.121], "policy_drivers": {"summary": "Established and governed by the City of Richmond's Alexandra District Energy Utility Bylaw No. 8641 (2010, amended by Bylaws 10085 and 10487), which mandates connection for new construction in the service area and sets GHG-reduction objectives tracked via a bylaw-referenced 'GHG Emissions Reduction Graph.' A related expansion (sewer heat recovery + permanent energy centre) received a $6.2M CleanBC Communities Fund grant, targeted for completion in 2028."}, "decarbonization": {"status": "actual", "summary": "The system is required to supply a minimum of 70% of collective annual heating, cooling and domestic hot water thermal energy from renewable geo-exchange sources under the bylaw's Energy Targets provision; GHG performance is tracked against the bylaw's reduction graph, though a single system-wide tonnage figure is not independently published."}, "mv_ongoing": {"summary": "The City installs, maintains and operates revenue-grade thermal energy meters (flow, temperature, energy calculator) at every building's Energy Transfer Station, transmitting data to a central DEU server used for both billing and continuous system optimization — the most rigorous, continuously-operating M&V regime of any project in this survey."}, "avoided_emissions": {"status": "actual", "summary": "The geoexchange field supplies the majority of heating and cooling for connected buildings, avoiding gas boiler and electric chiller operation; the City of Richmond reports the utility delivers roughly 60–80% GHG reduction versus conventional building systems for connected floor area. <i>(operator-reported figure; not verified against a regulatory filing in this document set.)</i>", "tapc_mapping": "A municipally owned geoexchange utility with a documented avoided-emissions record — the closest operating precedent to TAPC's core loop-field thesis outside a utility rate base."}, "avoided_peaks": {"status": "projected", "summary": "Geoexchange cooling displaces building chiller electricity in summer and high-COP heating reduces winter electric demand; not quantified in MW.", "tapc_mapping": "Supports a bidirectional peak metric (summer and winter) in the TAPC data standard."}}, {"id": 13, "name": "Chelsea UTEN Pilot", "location": "Chelsea, Manhattan, NYC", "owner": "Con Edison (CECONY)", "archetype": "Utility-owned UTEN recovering data-center waste heat", "stats": "3 buildings / 291 apartments; $45.5M total ($18.6M building cost, $6.4M O&M)", "business_model": {"summary": "Con Edison designs, owns and operates the network under a Thermal Customer Agreement; geothermal boreholes were assessed as infeasible for this dense site, so the network instead recovers waste heat from a data center in an adjacent office building.", "tapc_mapping": "A utility-executed analog of TAPC's TESA model — thermal sold as a metered service — but built and financed entirely on the utility's own balance sheet rather than through a standardized, third-party-financeable contract."}, "financing": {"summary": "100% ratepayer-funded cost recovery approved through the NY PSC UTEN Stage 2 filing process; no tax equity, ABS or private capital.", "tapc_mapping": "Exactly the gap TAPC's financing innovation targets: enabling private capital (tax equity, senior debt, eventually ABS) to co-fund or take out utility-financed pilots like this one, reducing the ratepayer bill impact."}, "metering": {"summary": "Flow meters, temperature sensors and BTU meters installed at each Energy Transfer Station to monitor thermal performance; temporary strap-on flow meters and domestic hot water meters were deployed pre-construction to verify actual building loads.", "otherm_mapping": "Strong methodological alignment with oTherm — pre-deployment load characterization plus permanent BTU/flow/temperature metering at every building interface is the same rigor oTherm standardizes; a natural first candidate for oTherm data-ingestion partnership."}, "lessons": "Non-geothermal thermal sources (data-center waste heat) can substitute for boreholes where site constraints make ground-source infeasible — useful precedent for dense urban TAPC applications.", "sources": ["https://www.coned.com/en/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/chelsea"], "coords": [40.7465, -73.9987], "policy_drivers": {"summary": "Required under NY PSC Case 22-M-0429 (implementing the Utility Thermal Energy Network and Jobs Act) and aligned with the CLCPA; sited to meet the state's Disadvantaged Community siting requirement, using the Climate Justice Working Group's Disadvantaged Communities Criteria (401 W 16th Street is NYCHA public housing in a designated DAC).<br><br><b>NYC carbon-law context (per Con Edison Clean Energy Transition Panel, Case 25-S-0741):</b> most buildings of this profile are covered by LL97 Article 320 ($268/mtCO2 over limit); utility generating stations are exempt. The LL97 steam coefficient for 2024–2029 was fixed by City Council and cannot be changed by DOB — DOB may amend coefficients by rule only for 2030–2034, and no coefficients are prescribed from 2035 onward. DOB's beneficial electrification credit (−0.0013 tCO2e/kWh at 2x for 2021–2026, −0.00065 at 1x for 2027–2029, bankable) actively favors heat-pump conversion, with no equivalent credit for connecting to or remaining on district steam — even though NYC's 2023 grid intensity was 3.32x district steam per kBtu (Exhibit CETP-9). Connection to a thermal energy network is compliant with <b>LL154</b> and the <b>NY All-Electric Buildings Act</b>, since thermal service involves no on-site combustion."}, "decarbonization": {"status": "projected", "summary": "Con Edison estimates the Pilot will reduce approximately 15,000 metric tons of lifetime (25-year) GHG-equivalent emissions versus the current District Steam baseline; joining the UTEN is separately estimated to cut 2,725 metric tons of lifetime CO2e for the 85 10th Avenue building versus electrifying with air-source heat pumps alone. Thermal rates are structured so participating customers save money versus remaining on District Steam."}, "mv_ongoing": {"summary": "BTU meters, flow meters and temperature sensors are installed at every Energy Transfer Station; NY PSC's Case 22-M-0429 framework requires quarterly Utility Thermal Energy Network Performance Metrics reporting, and the Pilot includes a Just Transition/Labor Peace commitment with a Project Labor Agreement for construction workforce tracking."}, "avoided_emissions": {"status": "projected", "summary": "Recovers waste heat from an adjacent data center that would otherwise be rejected to the atmosphere while the 291 apartments burned gas — a double counterfactual (rejected heat plus avoided gas combustion). Filing does not publish a consolidated mtCO2e avoided figure.", "tapc_mapping": "Waste-heat recovery avoided emissions require a two-sided counterfactual; TAPC's reporting convention must accommodate this or it will systematically understate waste-heat projects."}, "avoided_peaks": {"status": "projected", "summary": "Heat recovery displaces the data center's mechanical cooling load in the heating season, avoiding that electric demand, and serves apartment heating at a higher effective COP than individual ASHPs would achieve. Not quantified in MW.", "tapc_mapping": "Waste-heat networks avoid peak on both sides of the exchange — an argument for metering both interfaces, consistent with oTherm's per-ETS instrumentation."}}, {"id": 14, "name": "Rockefeller Center UTEN Pilot", "location": "Rockefeller Center, Manhattan, NYC", "owner": "Con Edison (CECONY)", "archetype": "Utility-owned UTEN recovering campus chilled-water-plant heat", "stats": "3 commercial buildings; $101M total ($42.3M building conversion, $7.7M O&M); 52,781 MBH peak heating; building COP 1.7, network peak-day COP 2.4", "business_model": {"summary": "Con Edison owns the Energy Transfer Station and Company-side equipment up to a defined demarcation point; Tishman Speyer owns building-side equipment. Recovers heat from the Rockefeller Center campus chilled-water plant rather than new boreholes.", "tapc_mapping": "A real-world demarcation-of-ownership template (utility vs. building owner) directly relevant to TAPC's Ground Loop as a Service and TESA contract design, though structured through a regulated utility filing rather than a private SPV."}, "financing": {"summary": "Costs recovered from electric ratepayers via PSC-approved UTEN filing; explicit trade-off analysis in the filing (e.g., a rejected back-up steam service option cited at +$720k) shows utility-style capital discipline.", "tapc_mapping": "Same ratepayer-funded gap as Chelsea/Mount Vernon — a candidate for TAPC's mock-ABS work stream to model how private capital could take out or co-finance a project of this profile."}, "metering": {"summary": "BTU meters, flow meters and temperature sensors throughout; the filing explicitly reports both a building-level COP (1.7) and a network-level peak-day COP (2.4), and expects COP to improve further with scale.", "otherm_mapping": "This is the best system-vs-building COP disclosure in the entire survey and matches oTherm's core metric (system COP with room for a network-scale reporting layer) almost exactly — a strong reference case for TAPC's credit-risk methodology work stream."}, "lessons": "Reusing existing campus infrastructure (a chilled-water plant) to seed a UTEN can significantly lower both cost and construction complexity versus new boreholes.", "sources": ["https://www.coned.com/-/media/files/coned/documents/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/rock-uten-cecony-stage-2-filing.pdf"], "coords": [40.7587, -73.9787], "policy_drivers": {"summary": "Required under NY PSC Case 22-M-0429 (Utility Thermal Energy Network and Jobs Act) and aligned with CLCPA electrification goals and NYC Local Law 97 compliance pressure on the three participating commercial buildings.<br><br><b>NYC carbon-law context (per Con Edison Clean Energy Transition Panel, Case 25-S-0741):</b> most buildings of this profile are covered by LL97 Article 320 ($268/mtCO2 over limit); utility generating stations are exempt. The LL97 steam coefficient for 2024–2029 was fixed by City Council and cannot be changed by DOB — DOB may amend coefficients by rule only for 2030–2034, and no coefficients are prescribed from 2035 onward. DOB's beneficial electrification credit (−0.0013 tCO2e/kWh at 2x for 2021–2026, −0.00065 at 1x for 2027–2029, bankable) actively favors heat-pump conversion, with no equivalent credit for connecting to or remaining on district steam — even though NYC's 2023 grid intensity was 3.32x district steam per kBtu (Exhibit CETP-9). Connection to a thermal energy network is compliant with <b>LL154</b> and the <b>NY All-Electric Buildings Act</b>, since thermal service involves no on-site combustion."}, "decarbonization": {"status": "projected", "summary": "Con Edison estimates the Pilot will reduce approximately 78,000 metric tons of lifetime (25-year) GHG-equivalent emissions, and conservatively estimates a 1.3 MW reduction in winter peak heating demand across the three buildings compared to electrifying with air-source heat pumps instead. Thermal rates are set so the Thermal Customer saves money using the Pilot versus remaining on District Steam."}, "mv_ongoing": {"summary": "BTU meters, flow meters and temperature sensors are installed throughout, with the filing reporting both building-level COP (1.7) and network peak-day COP (2.4) — a live system-vs-building performance comparison. Subject to the same NY PSC quarterly Performance Metrics reporting requirement as the other UTEN pilots, plus Labor Peace/Project Labor Agreement workforce commitments."}, "avoided_emissions": {"status": "projected", "summary": "Recovers heat from the existing campus chilled-water plant, avoiding both the rejection of that heat and the steam/gas that would otherwise heat the three buildings. Filing reports building COP 1.7 and network peak-day COP 2.4 rather than an avoided-emissions total.", "tapc_mapping": "COP disclosure at two levels makes avoided emissions computable from first principles — the disclosure model TAPC should require rather than accepting summary tonnage claims."}, "avoided_peaks": {"status": "projected", "summary": "Network peak-day COP of 2.4 versus a building-level 1.7 means the network form itself reduces coincident winter electric demand relative to building-by-building heat pumps — the quantitative case for networked over distributed electrification. Not published in MW.", "tapc_mapping": "This is the single most useful data point in the survey for TAPC's winter-peak argument: network COP > building COP is measurable, and translates directly into avoided grid capacity."}}, {"id": 15, "name": "Mount Vernon UTEN Pilot", "location": "Mount Vernon, NY", "owner": "Con Edison (CECONY)", "archetype": "Utility-owned UTEN with true geothermal boreholes + ASHP hybrid", "stats": "42–43 buildings; $145M total ($49.2M building cost, $10.2M O&M cited in one source, $119.39M excluding contingency in the Stage 2 filing); 127 boreholes across 4 bore fields, each ~850 ft deep", "business_model": {"summary": "Con Edison owns and operates the geothermal bore fields, Energy Center and distribution system; boreholes are sited partly on private property under land-use easement agreements, and the system hybridizes geothermal bore fields with air-source heat pumps.", "tapc_mapping": "The most directly comparable project to TAPC's core third-party geothermal loop-field thesis — true vertical boreholes serving a mixed-use neighborhood — but owned by a regulated utility rather than a project-financed third party. The private-property easement structure is a useful precedent for TAPC's SPV/land-rights work."}, "financing": {"summary": "100% ratepayer-funded, PSC-approved; a test borehole alone cost $186,000, illustrating the pre-construction data-gathering investment utilities are already making.", "tapc_mapping": "Directly the kind of project TAPC's mock ABS pool and credit-risk methodology (P10/P50/P90 geological-risk quantification) are designed to eventually help finance with private capital instead of, or alongside, ratepayer funds."}, "metering": {"summary": "BTU meters throughout; extensive pre-drilling thermal response testing (with USGS collaboration — borehole ultrasound and downhole camera imaging, fracture-zone transmissivity measurement) to size the bore field accurately.", "otherm_mapping": "The geological-characterization rigor here (thermal response testing, borehole imaging) is exactly the kind of “geological metadata” oTherm proposes to standardize and anonymize across projects — a strong technical-alignment case study for TAPC's Open Thermal Performance Database work stream."}, "lessons": "Land-use agreements with private property owners are a real, non-trivial part of scaling borehole-based UTENs — site-control risk deserves its own line in TAPC's standardized risk framework.", "sources": ["https://cdne-dcxprod-sitecore.azureedge.net/-/media/files/coned/documents/our-energy-future/our-energy-vision/where-we-are-going/thermal-energy-networks/mv-uten-cecony-stage-2-filing.pdf"], "coords": [40.9126, -73.8371], "policy_drivers": {"summary": "Required under NY PSC Case 22-M-0429 and sited in a designated Disadvantaged Community per CLCPA/Climate Justice Working Group criteria; Mount Vernon's Pilot design was explicitly shaped by affordability concerns raised during community engagement, leading to a formal bill-protection mechanism.<br><br><b>Statewide context:</b> LL97 does not apply outside NYC, so the compliance driver here is the CLCPA plus <b>LL154-equivalent</b> state policy — the <b>NY All-Electric Buildings Act</b>, which prohibits on-site fossil combustion in new construction (7 stories and under from 2026; all new buildings from 2029). Thermal energy network service is compliant because, like electricity, it involves no on-site combustion — making UTEN connection an affirmative compliance pathway rather than merely a decarbonization option."}, "decarbonization": {"status": "projected", "summary": "Con Edison estimates the Pilot will reduce approximately 40,000 lifetime metric tons of CO2 (based on energy modeling) and reduce electric system impact by an estimated 45% compared to converting the same buildings to air-source heat pumps instead."}, "mv_ongoing": {"summary": "BTU meters throughout, with extensive pre-construction thermal response testing (USGS-assisted borehole imaging and fracture-zone transmissivity measurement). The Customer Protection Plan explicitly commits to monitoring and comparing pre- and post-conversion energy usage and costs to validate savings, and caps customer costs at or below current levels or projected conventional-equipment costs — a direct, contractually-binding ongoing M&V commitment."}, "avoided_emissions": {"status": "projected", "summary": "127 boreholes across 4 bore fields hybridized with air-source heat pumps displace fossil heating in 42–43 buildings; the geothermal share avoids the winter grid emissions the ASHP-only alternative would incur. No consolidated mtCO2e avoided figure in the Stage 2 filing.", "tapc_mapping": "The geothermal-vs-ASHP hybrid split is exactly the marginal analysis TAPC's credit methodology needs: how much borehole capital buys how much winter performance."}, "avoided_peaks": {"status": "projected", "summary": "The geothermal/ASHP hybrid is designed so boreholes carry the coldest hours, when ASHP COP and grid capacity are both worst — the design intent is winter peak avoidance even though it is not stated in MW.", "tapc_mapping": "Hybrid sizing is effectively a peak-avoidance investment decision; TAPC should be able to value it as such."}}, {"id": 16, "name": "Syracuse UTEN Pilot", "location": "Syracuse, NY (Inner Harbor)", "owner": "National Grid (Niagara Mohawk Power Corp / NMPC)", "archetype": "Utility-owned UTEN using wastewater-treatment-plant heat", "stats": "13 buildings (residential, office, commercial, incl. Onondaga County Aquarium); $126.4–143.6M total (sources vary), $17.2M O&M; 10-year contract term; WSHP COP 4.5–5.0", "business_model": {"summary": "National Grid owns and operates a small satellite central plant; the network draws heat from a wastewater treatment plant rather than geothermal boreholes because the site is too land-constrained for a bore field. Includes a shadow-billing customer protection plan.", "tapc_mapping": "Reinforces that TAPC's contract templates need to flex across multiple thermal sources (WWTP heat, data-center heat, boreholes, ambient water) — not just geoexchange — while still using a single standardized TESA-style structure."}, "financing": {"summary": "Total project cost of $143.64M amortized over ten years, recovered via surcharges to gas and electric customers, partially offset by thermal energy fees from pilot participants. May also qualify for IRA §48 tax credits worth up to 50% of eligible costs.", "tapc_mapping": "The explicit IRA §48 ITC reference matches TAPC's own financing thesis almost exactly (TAPC's brief cites the same 50% ITC as a key tailwind) — a concrete example of the tax-credit stacking TAPC's standardized SPV work stream is designed to make routine."}, "metering": {"summary": "Dedicated flow meters at each connected Remote Terminal Unit (RTU); reports water-source heat pump COP in the 4.5–5.0 range.", "otherm_mapping": "Solid alignment with oTherm's flow-metering and COP-reporting approach, though narrower in scope (flow only, not full EWT/LWT band reporting) than the Con Edison pilots."}, "lessons": "Non-geothermal renewable thermal sources (wastewater heat) can hit high COPs (4.5–5.0) and avoid the land footprint of a bore field — relevant for TAPC's urban/infill segment.", "sources": ["https://www.nationalgridus.com/media/pdfs/microsites/geothermal/syracuse-uten-pilot-stage-2-filing.pdf"], "coords": [43.0642, -76.146], "policy_drivers": {"summary": "Required under NY PSC Case 22-M-0429 and CLCPA; the Inner Harbor/Lakefront site is a designated Disadvantaged Community undergoing broader redevelopment (part of a $350M multi-phase transformation led by COR Development and the City of Syracuse). May also qualify for IRA §48 investment tax credits worth up to 50% of eligible project costs.<br><br><b>Statewide context:</b> LL97 does not apply outside NYC, so the compliance driver here is the CLCPA plus <b>LL154-equivalent</b> state policy — the <b>NY All-Electric Buildings Act</b>, which prohibits on-site fossil combustion in new construction (7 stories and under from 2026; all new buildings from 2029). Thermal energy network service is compliant because, like electricity, it involves no on-site combustion — making UTEN connection an affirmative compliance pathway rather than merely a decarbonization option."}, "decarbonization": {"status": "projected", "summary": "National Grid (NMPC) estimates the Pilot will eliminate approximately 5,825 metric tons of CO2-equivalent emissions over the pilot period versus the baseline scenario, aligned with CLCPA goals; water-source heat pumps drawing on wastewater-treatment-plant heat report COPs of 4.5–5.0."}, "mv_ongoing": {"summary": "A dedicated GHG Emission Reductions section (12.4) and metric data collection/reporting structures are built into the filing 'to ensure proper monitoring and oversight of the Pilot.' The Customer Protection Plan uses shadow billing to directly compare UTEN costs against what customers would have paid on traditional systems, alongside dedicated flow meters at each connected RTU."}, "avoided_emissions": {"status": "projected", "summary": "Displaces fossil heating in an upstate heating-dominated climate; avoided emissions relative to an ASHP alternative are larger here than downstate because of colder design temperatures. Not quantified in the filing.", "tapc_mapping": "Climate-zone sensitivity of avoided emissions argues for TAPC reporting normalized by heating degree days."}, "avoided_peaks": {"status": "projected", "summary": "Upstate NY is winter-peaking; ground-source COP stability at design temperature is where the avoided-capacity value concentrates. Not quantified in MW.", "tapc_mapping": "Strongest winter-peak value case in the portfolio; a priority site for peak-value metering."}}, {"id": 17, "name": "Buffalo UTEN Pilot", "location": "Buffalo, NY", "owner": "National Fuel", "archetype": "Early-stage utility UTEN pilot in a disadvantaged community", "stats": "Sited on a city block with existing low-income housing and an existing municipal district heating system downtown; Stage 2 filing extension requested (least mature pilot in this survey)", "business_model": {"summary": "Utility-owned UTEN pilot required under the NY PSC's directive that each of the state's seven largest utilities propose at least one pilot in a disadvantaged community; details are less mature than the Con Edison/National Grid/NYSEG pilots.", "tapc_mapping": "Too early-stage for a full TAPC business-model mapping, but its disadvantaged-community mandate is directly relevant to TAPC's decarbonization-equity framing and to Best Practice Topic “disadvantaged community needs” in the survey."}, "financing": {"summary": "Not yet publicly detailed; filing timeline has been extended.", "tapc_mapping": "A candidate for early TAPC/oTherm engagement — because the design isn't finalized, standardized TESA and metering data-contribution language could be built in from the start rather than retrofitted."}, "metering": {"summary": "Not yet publicly detailed.", "otherm_mapping": "Same early-engagement opportunity as above."}, "lessons": "Not all UTEN pilots move at the same pace — site constraints (existing district heating infrastructure, disadvantaged-community requirements) can materially extend design timelines.", "sources": ["https://documents.dps.ny.gov/public/Common/ViewDoc.aspx?DocRefId=%7B9004249B-0000-C213-91B7-807948D49891%7D"], "coords": [42.8864, -78.8784], "policy_drivers": {"summary": "Required under the same NY PSC Case 22-M-0429 framework as the other five NY UTEN pilots, including the mandate that National Fuel site at least one pilot in a Disadvantaged Community; sited on a Buffalo city block with existing low-income housing and an existing municipal district heating system downtown.<br><br><b>Statewide context:</b> LL97 does not apply outside NYC, so the compliance driver here is the CLCPA plus <b>LL154-equivalent</b> state policy — the <b>NY All-Electric Buildings Act</b>, which prohibits on-site fossil combustion in new construction (7 stories and under from 2026; all new buildings from 2029). Thermal energy network service is compliant because, like electricity, it involves no on-site combustion — making UTEN connection an affirmative compliance pathway rather than merely a decarbonization option."}, "decarbonization": {"status": "not yet available", "summary": "No CO2-avoided or cost-savings figures have been publicly disclosed; the Stage 2 filing timeline has been extended, and this is the least design-mature pilot in the survey."}, "mv_ongoing": {"summary": "Not yet available. As with the other five NY UTEN pilots, National Fuel will be subject to the state's quarterly Utility Thermal Energy Network Performance Metrics reporting requirement once the Pilot advances, but no pilot-specific monitoring plan has been published yet."}, "avoided_emissions": {"status": "projected", "summary": "Displaces fossil heating in a cold, heating-dominated climate; avoided emissions versus an ASHP counterfactual are material at Buffalo design temperatures. Not quantified in the filing.", "tapc_mapping": "Same climate-normalization point as Syracuse."}, "avoided_peaks": {"status": "projected", "summary": "Winter peak avoidance relative to distributed air-source electrification; not quantified in MW.", "tapc_mapping": "Candidate for oTherm-instrumented winter-peak measurement."}}, {"id": 18, "name": "Ithaca UTEN Pilot", "location": "Ithaca, NY", "owner": "NYSEG / RGE (Avangrid)", "archetype": "Utility-owned UTEN using open-loop groundwater", "stats": "36 buildings (8 non-residential, 27 residential, 1 church) in the survey / 45 buildings & 73 customers per NYSEG's public materials, ~1/3 residences owned by a nonprofit affordable-housing provider; $34.45M cost, $17.03M O&M", "business_model": {"summary": "NYSEG owns and operates groundwater heat-exchanger wells feeding a shared piping network; in-building geothermal heat pumps connect to the network. Currently in the well-flow-testing and soil-sampling data-gathering phase.", "tapc_mapping": "Structurally close to TAPC's Ground Loop as a Service model (shared source infrastructure, building-owned heat pump) but executed by a regulated utility; the significant nonprofit-affordable-housing participation is a strong equity case study for TAPC's stakeholder-engagement work."}, "financing": {"summary": "$34.45M capital cost plus $17.03M O&M, ratepayer-recovered per the standard NY UTEN Stage 2 framework; smallest capital cost of the four fully-scoped Con Ed/National Grid/NYSEG pilots.", "tapc_mapping": "A useful lower-cost benchmark for TAPC's residential/multifamily segment sizing work."}, "metering": {"summary": "Project is still in the well-flow-testing and soil-sampling phase (data-gathering methodology parallels oTherm's borehole/aquifer characterization emphasis); permanent metering plan not yet public.", "otherm_mapping": "Because construction hasn't finalized, Ithaca is a strong near-term candidate to build oTherm-compatible interval metering in from day one rather than retrofit it later."}, "lessons": "Open-loop groundwater systems require careful well-flow characterization before sizing — similar rigor to (but a different resource than) the Mount Vernon borehole approach.", "sources": ["https://www.nyseg.com/w/nyseg-s-proposed-utility-thermal-energy-network-pilot-advances-to-key-phase-in-ithaca"], "coords": [42.443, -76.5019], "policy_drivers": {"summary": "Required under NY PSC Case 22-M-0429 and explicitly framed by NYSEG as supporting the Ithaca Green New Deal; sited in a NYS-designated Disadvantaged Community with roughly a third of participating residences owned by Ithaca Neighborhood Housing Services, a nonprofit affordable-housing provider.<br><br><b>Statewide context:</b> LL97 does not apply outside NYC, so the compliance driver here is the CLCPA plus <b>LL154-equivalent</b> state policy — the <b>NY All-Electric Buildings Act</b>, which prohibits on-site fossil combustion in new construction (7 stories and under from 2026; all new buildings from 2029). Thermal energy network service is compliant because, like electricity, it involves no on-site combustion — making UTEN connection an affirmative compliance pathway rather than merely a decarbonization option."}, "decarbonization": {"status": "projected", "summary": "A specific lifetime CO2-avoided figure has not been publicly disclosed; NYSEG frames the project's decarbonization case around shifting multiple buildings to shared renewable heating/cooling simultaneously rather than one-by-one electrification, consistent with Ithaca's own municipal decarbonization targets."}, "mv_ongoing": {"summary": "NYSEG uses SCADA systems to monitor infrastructure and intends to track operational metrics hourly or per-incident, filing quarterly reports (or at Stage 3 completion) per the PSC's Guidance Order and Utility Thermal Energy Network Performance Metrics Report. Customer-experience monitoring includes a quarterly Qualtrics survey (up to 11 questions, varying by pre-/mid-/post-construction phase) and a full energy-bill-impact analysis of every building in the pilot area before construction."}, "avoided_emissions": {"status": "projected", "summary": "Displaces fossil heating in a small-city cold climate with strong municipal decarbonization commitments; no published avoided-emissions figure.", "tapc_mapping": "Small-scale sites are where standardized, low-cost avoided-emissions reporting matters most — bespoke studies are uneconomic below a certain project size."}, "avoided_peaks": {"status": "projected", "summary": "Winter peak avoidance relative to air-source electrification; not quantified in MW.", "tapc_mapping": "Supports TAPC providing a default, auditable peak-avoidance calculation method so small projects can claim the value without custom studies."}}], "tapc_roadmap": {"workstreams": [{"num": 1, "sapc": "Standard residential & commercial solar PPA/lease contracts", "tapc": "Standard Thermal Energy Services Agreement (TESA) templates — campus, multifamily, single-building — with performance guarantees, M&V, load-growth, assignment, and step-in rights"}, {"num": 2, "sapc": "Standard EPC, O&M, and SPV structuring guidance", "tapc": "Standard fixed-price EPC + performance-bond package and per-project LLC/SPV structure pre-cleared for tax-equity and senior debt"}, {"num": 3, "sapc": "Open Solar Performance Database (oSpark to kWh Analytics)", "tapc": "Extend oTherm: Open Thermal Performance Database — 15-min EWT, system COP, ton-hours delivered vs. contracted, thermal imbalance, geological metadata"}, {"num": 4, "sapc": "Credit-risk & valuation framework engaging S&P, DBRS, Moody's, Fitch", "tapc": "Thermal credit-risk methodology — DSCR sensitivity under P10/P50/P90 load, geological-risk quantification, LL97 penalty-avoidance valuation, ITC-adder verification"}, {"num": 5, "sapc": "Mock securitization with rating agencies to surface gaps", "tapc": "Mock Multi-Campus TESA-backed ABS pool — engage S&P/KBRA/DBRS/Fitch on a hypothetical ~$250M pool"}, {"num": 6, "sapc": "Best-practices guides, summits, ratings-agency briefings", "tapc": "Publish TAPC Best-Practices Guides; host annual TAPC Summit and quarterly investor/rating-agency briefings"}], "roadmap_phases": [{"phase": "Phase 1 — Catalytic", "years": "Year 1 (Months 0–12)", "budget": 2150, "milestones": ["Months 0–6: Formal charter, working-group recruitment, scope of 6 work streams locked, funding instrument finalized", "Months 3–12: TESA v1.0 and SPV term sheet drafted; data-contribution agreements signed by ≥10 developers"], "funding_mix": "Anchored by DOE Geothermal Technologies Office / NREL grant + climate philanthropy (target ~60–70%), with state-energy-office and green-bank matching."}, {"phase": "Phase 2 — Matching", "years": "Year 2 (Months 12–24)", "budget": 2420, "milestones": ["Months 12–24: oTherm 'Open Thermal Performance Database' v1 live (≥100 loop fields ingested); credit-risk methodology circulated to rating agencies"], "funding_mix": "Utilities, developers, OEMs and ESCOs begin tiered membership dues; green banks and state programs match."}, {"phase": "Phase 3 — Self-sustaining", "years": "Year 3 (Months 24–36)", "budget": 2310, "milestones": ["Months 24–36: Mock ABS pool dry-run completed; inaugural TAPC Summit; v1.0 standardized contract suite published; gap-and-progress report delivered to stakeholders and sponsors"], "funding_mix": "Majority funded by industry dues, summit sponsorship and investor/rating-agency briefings as grants taper."}], "budget_line_items": [{"item": "Program management & secretariat", "yr1": 800, "yr2": 800, "yr3": 800, "total": 2400}, {"item": "Legal & contract standardization (TESA, EPC, SPV)", "yr1": 450, "yr2": 300, "yr3": 150, "total": 900}, {"item": "oTherm data platform (build, engineering, hosting)", "yr1": 350, "yr2": 400, "yr3": 250, "total": 1000}, {"item": "Credit-risk methodology & rating-agency engagement", "yr1": 150, "yr2": 350, "yr3": 200, "total": 700}, {"item": "Mock multi-campus ABS dry-run", "yr1": 0, "yr2": 150, "yr3": 450, "total": 600}, {"item": "Technical / financial / M&V best-practices guides", "yr1": 120, "yr2": 100, "yr3": 80, "total": 300}, {"item": "Annual TAPC Summit + quarterly briefings", "yr1": 120, "yr2": 160, "yr3": 200, "total": 480}, {"item": "Outreach, admin, travel & contingency", "yr1": 160, "yr2": 160, "yr3": 180, "total": 500}], "funding_sources": [{"source": "DOE Geothermal Technologies Office (GTO)", "type": "Federal grant", "role": "Anchor catalytic funder — direct SAPC/SunShot analog; Phases 1–2 (subject to federal availability)."}, {"source": "NREL / national-lab cooperative agreement", "type": "In-kind technical", "role": "Convening credibility, data and credit-methodology support, as NREL did for SAPC."}, {"source": "Climate / decarbonization philanthropy", "type": "Grant", "role": "Catalytic early funding and matching; de-risks Phase 1 before dues scale."}, {"source": "State energy offices & green banks (NYSERDA, CT Green Bank, etc.)", "type": "Grant / matching", "role": "State match tied to TEN and Clean Heat programs; Phases 1–3."}, {"source": "Regulated utilities running TEN pilots", "type": "Member / co-funder", "role": "Co-fund and contribute pilot performance data; Phases 2–3."}, {"source": "Developers, OEMs & ESCOs", "type": "Membership dues", "role": "Tiered dues + staffing of sub-committees; scales in Phase 2."}, {"source": "Tax-equity sponsors, lenders, insurers", "type": "Member / sponsor", "role": "Briefing sponsorship and structuring input; Phase 3 self-sustaining base."}, {"source": "Rating agencies (S&P, KBRA, DBRS, Fitch)", "type": "In-kind", "role": "Engagement on methodology and the mock pool — not funders."}], "cost_of_capital": {"precedent": {"label": "SAPC / Solar Securitization (2013–2025)", "first_issuance": "SolarCity 2013-1: ~$54M, BBB+ rated, 4.80% coupon (~0.5% above 30-yr mortgage rate) — first public-market solar ABS", "cost_reduction": "NREL: securitization + standardization cut solar LCOE 8–16% vs. a typical PPA. ABS senior debt priced ~4.3–5% vs. 8–12%+ for tax-equity/mezzanine — ~300–400 bps of capital-stack savings", "market_growth": "Deal size grew from $54M (2013) to ~$300M average (2024); annual issuance peaked ~$4.3B (2022–23); ~$10–12.4B rated ABS outstanding, >90% investment-grade", "repeat_issuers": "Sunrun, Sunnova, GoodLeap, Mosaic, SunPower, Everbright, EnFin"}, "segments": [{"segment": "Residential heat-pump", "today": "5–9% APR (advertised); 7–12%+ for weak credits", "with_tapc": "150–300 bps lower funding cost", "mechanism": "Standard TESA + oTherm data extend GoodLeap/Mosaic-style pooling"}, {"segment": "Commercial heat-pump", "today": "C-PACE ~5.5–9%, 10–30 yr terms", "with_tapc": "~100–250 bps benefit", "mechanism": "Performance-bond + M&V de-risks DSCR for pooled rated notes"}, {"segment": "District / campus geothermal", "today": "Tax-exempt muni/university ~3–5%; green bonds tighter", "with_tapc": "100–200 bps + access for smaller campuses", "mechanism": "Infrastructure-grade loop fields into project bonds / pooled ABS"}, {"segment": "Data-center thermal networks", "today": "IG corporate cost of capital ~4.5–5.5%", "with_tapc": "50–150 bps + balance-sheet relief", "mechanism": "Thermal-as-a-service contracts with IG hyperscaler offtakers are highly bondable"}]}, "market_sizing": {"years": "2027–2035 (cumulative)", "segments": [{"segment": "Residential heat-pump", "low": 3, "base": 8, "high": 18}, {"segment": "Commercial heat-pump", "low": 2, "base": 6, "high": 14}, {"segment": "District / campus geothermal", "low": 2, "base": 7, "high": 20}, {"segment": "Data-center thermal networks", "low": 1, "base": 5, "high": 25}], "total": {"low": 8, "base": 26, "high": 77}, "note": "Figures are illustrative cumulative new-issuance potential in $B, applying the SAPC playbook to thermal assets under conservative (Low), Base, and aggressive (High) adoption scenarios."}, "climate_impact": {"years": "2027–2035 (Base case)", "segments": [{"segment": "Residential HP ($8B)", "reach": "~400,000 homes", "co2": "~1.0 Mt CO2/yr (≈2.5 t/home)", "other": "~240M therms gas displaced/yr; $300–600/yr lower bills"}, {"segment": "Commercial HP ($6B)", "reach": "~10,000 buildings retrofit", "co2": "~0.7 Mt CO2/yr", "other": "~30–50% HVAC energy cut; LL97-type penalty avoidance"}, {"segment": "District/campus geo ($7B)", "reach": "~200 campus/district loop systems", "co2": "~1.8 Mt CO2/yr", "other": "Retires central fossil plants; 40–60% site energy cut"}, {"segment": "Data-center thermal ($5B)", "reach": "~100 facility-scale loops", "co2": "~1.2 Mt CO2/yr", "other": "Improves PUE; enables waste-heat reuse"}], "total": "~4.5–5 Mt CO2/yr; ~20–25 Mt cumulative by 2035 (Base case)", "grid_benefit": "Higher load factor from high-COP (3–6) ground-source/networked systems; ORNL estimates mass GSHP deployment could avoid up to ~24,500 miles of new transmission by 2050."}, "investor_fit": [{"investor_type": "DOE / NREL (federal, in-kind + grant)", "pool_context": "Direct SAPC/SunShot analog — DOE ran SAPC on a 3-year SunShot grant (2012–2015)", "entry_point": "Phase 1 anchor funder", "instrument": "Cooperative agreement / grant", "why_fit": "Federal catalytic capital exists precisely to de-risk pre-commercial standardization work like TAPC's six work streams — the same role it played for solar."}, {"investor_type": "State energy offices & green banks (NYSERDA, CT Green Bank, etc.)", "pool_context": "Already funding TEN/Clean Heat pilots directly (e.g., NY UTEN cohort)", "entry_point": "Phases 1–3, matching grants", "instrument": "Grant / matching capital", "why_fit": "TAPC's standardization work directly de-risks the same pilots these programs are already funding, improving their own portfolio's bankability."}, {"investor_type": "Climate / decarbonization philanthropy", "pool_context": "Catalytic grant capital seeking market-transformation leverage", "entry_point": "Phase 1", "instrument": "Grant", "why_fit": "A ~$6.9M three-year investment claims credit for catalyzing a $26–77B private asset class — an unusually high leverage ratio for philanthropic capital."}, {"investor_type": "Insurance companies", "pool_context": "~30% of insurers already invest in infrastructure via separate accounts; 60%+ considering it. If insurers allocated just 5% of gross written premiums to infrastructure, it could cover ~half the annual global infrastructure investment gap.", "entry_point": "Phase 3+ — as senior debt/ABS buyer once investment-grade thermal notes exist", "instrument": "Senior ABS debt, green bonds", "why_fit": "Insurers need long-duration, investment-grade fixed income to match long-duration liabilities — exactly what a standardized, rated thermal ABS asset class (targeting solar's ~4.3–5% pricing, >90% investment-grade) is designed to supply."}, {"investor_type": "Pension funds", "pool_context": "~$73T in global pension assets (top 300 funds alone manage $24.4T); climate-aligned allocations still only 5–15% of holdings — a large, under-allocated pool relative to stated climate commitments.", "entry_point": "Phase 3+ — direct ABS/infrastructure-debt buyer, or via green bond funds", "instrument": "Rated ABS notes, infrastructure debt, green bonds", "why_fit": "TAPC's target market ($26–77B by 2035) is a rounding error against $73T in pension assets — even a marginal reallocation toward standardized, rated thermal infrastructure could fully fund the asset class many times over, while helping pensions close their own stated climate-allocation gap."}, {"investor_type": "Impact investors", "pool_context": "~$1.6T global impact investing AUM, growing ~21% CAGR; pension funds now supply the single largest share of impact capital (35% of AUM, growing ~47%/yr).", "entry_point": "Phases 2–3 — early equity/mezzanine in SPVs, then rated notes as the asset class matures", "instrument": "Mezzanine/equity in project SPVs; later, labeled green/social bonds", "why_fit": "TAPC's dual mandate — decarbonization (climate impact) plus disadvantaged-community UTEN pilots (equity/access impact) — matches the two largest impact-investing themes, and pension-fund-driven impact capital is the fastest-growing segment of that market."}, {"investor_type": "Tax-equity sponsors & senior lenders", "pool_context": "Existing solar/renewables tax-equity and structured-credit market, already active via IRA §48 ITC monetization", "entry_point": "Phase 2–3 — per-project SPV financing once EPC/SPV templates (work stream 2) are standardized", "instrument": "Tax equity, senior project debt", "why_fit": "IRA §48 ITC (up to 50% of eligible costs) is already being cited in live NY UTEN filings (e.g., Syracuse) — the tax-equity market that monetizes this credit for solar is a direct, ready-made analog for thermal."}, {"investor_type": "Rating agencies (S&P, KBRA, DBRS, Fitch)", "pool_context": "Not a capital source — gatekeepers whose methodology determines whether the other investor pools above can participate at all", "entry_point": "Phases 1–3, in-kind advisory + Phase 3 mock ABS dry-run", "instrument": "In-kind engagement", "why_fit": "SAPC's mock securitization exercise is what let rating agencies build a solar ABS methodology years before it was needed at scale — TAPC's mock $250M multi-campus pool is designed to do the same for thermal, unlocking every investor category above."}], "benchmarks": {"green_bond_market": "Global green bond market ~$640B in 2026, projected toward ~$1T by 2030; annual issuance stabilizing at $800–900B in 2026 (S&P Global Ratings) after a period of rapid growth.", "insurance": "~30% of insurers currently invest in infrastructure via separate accounts, with 60%+ considering it; a 5%-of-gross-written-premiums allocation to infrastructure could cover roughly half the global annual infrastructure investment gap.", "pension": "Global pension assets ~$73T (public + private); climate-aligned/ESG-themed allocations still only 5–15% of holdings. Pension funds and insurers together hold $100T+ in assets, positioning them as the largest addressable pool for climate-resilient infrastructure.", "impact_investing": "Global impact investing AUM ~$1.6T (up from ~$1.16T in 2022), 21% CAGR; pension funds now supply 35% of total impact AUM, the fastest-growing investor segment at ~47%/yr.", "capital_gap": "IEA estimates annual clean-energy investment must reach $3.5–4.5T by 2030 for a 1.5°C pathway; S&P Global estimates up to $60T cumulative investment needed in clean energy supply through 2050."}}};
+const RM = DATA.tapc_roadmap;
+
+const CATEGORY_COLORS = {
+  "NY UTEN geothermal pilot": "#C0392B",
+  "Utility-owned geothermal pilot": "#B7791F",
+  "Municipal district geothermal utility": "#1E7145",
+  "Municipal district energy utility": "#1E7145",
+  "Private / investor-owned district energy": "#1F3864",
+  "Nonprofit district energy utility": "#6B3FA0",
+  "Other": "#555555",
+};
+
+function categoryOf(p) {
+  const n = p.name;
+  if (["Chelsea", "Rockefeller", "Mount Vernon", "Syracuse", "Buffalo", "Ithaca"].some(k => n.includes(k))) return "NY UTEN geothermal pilot";
+  if (n.includes("Eversource")) return "Utility-owned geothermal pilot";
+  if (n.includes("Alexandra")) return "Municipal district geothermal utility";
+  if (n.includes("False Creek")) return "Municipal district energy utility";
+  if (["Creative Energy", "Con Edison", "Vicinity", "CenTrio", "Enwave"].some(k => n.includes(k))) return "Private / investor-owned district energy";
+  if (n.includes("St. Paul")) return "Nonprofit district energy utility";
+  return "Other";
+}
+
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+
+
+function statusClass(status) {
+  return "status-" + status.replace(/\s+/g, "");
+}
+function statusLabel(status) {
+  const map = { actual: "ACTUAL / OPERATING DATA", projected: "PROJECTED (FROM FILINGS/MODELING)", "not yet available": "NOT YET AVAILABLE" };
+  return map[status] || status.toUpperCase();
+}
+
+function renderProfile(p) {
+  const v = document.getElementById('view-profile');
+  v.innerHTML = '';
+  const card = el('div', 'card');
+
+  card.appendChild(el('div', 'proj-title', p.name));
+  card.appendChild(el('div', 'proj-meta', `${p.location} &nbsp;·&nbsp; ${p.owner} &nbsp;·&nbsp; ${p.archetype}`));
+  card.appendChild(el('div', 'proj-stats', p.stats));
+
+  function block(cls, title, summary, mapLabel, mapText) {
+    const b = el('div', 'section-block ' + cls);
+    b.appendChild(el('h3', null, title));
+    b.appendChild(el('p', null, summary));
+    if (mapText) {
+      const m = el('div', 'mapping');
+      m.innerHTML = '<b>' + mapLabel + ':</b> ' + mapText;
+      b.appendChild(m);
+    }
+    return b;
+  }
+
+  card.appendChild(block('core', 'Business Model', p.business_model.summary, '→ TAPC mapping', p.business_model.tapc_mapping));
+  card.appendChild(block('core', 'Financing Approach', p.financing.summary, '→ TAPC mapping', p.financing.tapc_mapping));
+  card.appendChild(block('core', 'Performance &amp; Metering', p.metering.summary, '→ oTherm mapping', p.metering.otherm_mapping));
+  card.appendChild(block('policy', 'Government &amp; Regulatory Policy Drivers', p.policy_drivers.summary));
+
+  const decarbBlock = el('div', 'section-block decarb');
+  decarbBlock.appendChild(el('h3', null, 'Decarbonization Impact &amp; Cost Savings'));
+  const tag = el('span', 'status-tag ' + statusClass(p.decarbonization.status), statusLabel(p.decarbonization.status));
+  decarbBlock.appendChild(tag);
+  decarbBlock.appendChild(el('p', null, p.decarbonization.summary));
+  card.appendChild(decarbBlock);
+
+  if (p.avoided_emissions) {
+    const ab = el('div', 'section-block avoided');
+    ab.appendChild(el('h3', null, 'Avoided Emissions'));
+    ab.appendChild(el('span', 'status-tag ' + statusClass(p.avoided_emissions.status), statusLabel(p.avoided_emissions.status)));
+    ab.appendChild(el('p', null, p.avoided_emissions.summary));
+    if (p.avoided_emissions.tapc_mapping) {
+      const m = el('div', 'mapping');
+      m.innerHTML = '<b>\u2192 TAPC mapping:</b> ' + p.avoided_emissions.tapc_mapping;
+      ab.appendChild(m);
+    }
+    card.appendChild(ab);
+  }
+
+  if (p.avoided_peaks) {
+    const pb = el('div', 'section-block peaks');
+    pb.appendChild(el('h3', null, 'Avoided Electric Peaks'));
+    pb.appendChild(el('span', 'status-tag ' + statusClass(p.avoided_peaks.status), statusLabel(p.avoided_peaks.status)));
+    pb.appendChild(el('p', null, p.avoided_peaks.summary));
+    if (p.avoided_peaks.tapc_mapping) {
+      const m = el('div', 'mapping');
+      m.innerHTML = '<b>\u2192 TAPC mapping:</b> ' + p.avoided_peaks.tapc_mapping;
+      pb.appendChild(m);
+    }
+    card.appendChild(pb);
+  }
+
+  card.appendChild(block('mv', 'Ongoing M&amp;V from Operations', p.mv_ongoing.summary));
+
+  const lessonsBlock = el('div', 'section-block');
+  lessonsBlock.appendChild(el('h3', null, 'Lessons Learned'));
+  const lessons = el('div', 'lessons', p.lessons);
+  lessonsBlock.appendChild(lessons);
+  card.appendChild(lessonsBlock);
+
+  const src = el('div', 'source-line');
+  src.innerHTML = 'Source: ' + p.sources.map(s => `<a href="${s}" target="_blank" rel="noopener">${s}</a>`).join(' &nbsp;|&nbsp; ');
+  card.appendChild(src);
+
+  v.appendChild(card);
+}
+
+function renderTables() {
+  const tbody1 = document.getElementById('tableBody1');
+  const tbody2 = document.getElementById('tableBody2');
+  const tbody3 = document.getElementById('tableBody3');
+  tbody1.innerHTML = '';
+  tbody2.innerHTML = '';
+  if (tbody3) tbody3.innerHTML = '';
+  DATA.projects.forEach(p => {
+    const tr1 = document.createElement('tr');
+    tr1.className = 'clickable-row';
+    tr1.onclick = () => jumpTo(p.id);
+    tr1.innerHTML = `
+      <td><b>${p.name}</b></td>
+      <td>${p.owner}</td>
+      <td>${p.business_model.summary}</td>
+      <td>${p.financing.summary}</td>
+      <td>${p.metering.summary}</td>
+    `;
+    tbody1.appendChild(tr1);
+
+    const tr2 = document.createElement('tr');
+    tr2.className = 'clickable-row';
+    tr2.onclick = () => jumpTo(p.id);
+    tr2.innerHTML = `
+      <td><b>${p.name}</b></td>
+      <td>${p.policy_drivers.summary}</td>
+      <td><span class="status-tag ${statusClass(p.decarbonization.status)}">${statusLabel(p.decarbonization.status)}</span><br>${p.decarbonization.summary}</td>
+      <td>${p.mv_ongoing.summary}</td>
+    `;
+    tbody2.appendChild(tr2);
+
+    if (tbody3) {
+      const ae = p.avoided_emissions || { status: 'not yet available', summary: '\u2014' };
+      const ap = p.avoided_peaks || { status: 'not yet available', summary: '\u2014' };
+      const tr3 = document.createElement('tr');
+      tr3.className = 'clickable-row';
+      tr3.onclick = () => jumpTo(p.id);
+      tr3.innerHTML = `
+        <td><b>${p.name}</b></td>
+        <td><span class="status-tag ${statusClass(ae.status)}">${statusLabel(ae.status)}</span><br>${ae.summary}</td>
+        <td><span class="status-tag ${statusClass(ap.status)}">${statusLabel(ap.status)}</span><br>${ap.summary}</td>
+      `;
+      tbody3.appendChild(tr3);
+    }
+  });
+}
+
+function renderRef() {
+  const v = document.getElementById('view-ref');
+  const card = el('div', 'card');
+  card.appendChild(el('div', 'proj-title', 'TAPC &amp; oTherm Reference Framework'));
+  card.appendChild(el('div', 'proj-meta', 'The framework every project profile is compared against.'));
+  const grid = el('div', 'ref-grid');
+
+  function refCard(title, items) {
+    const c = el('div', 'ref-card');
+    c.appendChild(el('h4', null, title));
+    const ul = el('ul');
+    items.forEach(t => ul.appendChild(el('li', null, t)));
+    c.appendChild(ul);
+    return c;
+  }
+  grid.appendChild(refCard('TAPC — Six Business Models', DATA.tapc_reference.business_models));
+  grid.appendChild(refCard('TAPC — Financing Proposals', DATA.tapc_reference.financing_proposals));
+  grid.appendChild(refCard('oTherm.org — M&amp;V Methodology', DATA.tapc_reference.otherm_methodology));
+  card.appendChild(grid);
+  v.innerHTML = '';
+  v.appendChild(card);
+}
+
+let leafletMap = null;
+let markerById = {};
+function renderMap() {
+  if (leafletMap) { setTimeout(() => leafletMap.invalidateSize(), 50); return; }
+  leafletMap = L.map('leafletMap').setView([42.5, -85], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(leafletMap);
+
+  DATA.projects.forEach(p => {
+    const [lat, lon] = p.coords;
+    const cat = categoryOf(p);
+    const color = CATEGORY_COLORS[cat] || '#555';
+    const marker = L.circleMarker([lat, lon], {
+      radius: 9, color: '#fff', weight: 2, fillColor: color, fillOpacity: 0.95
+    }).addTo(leafletMap);
+    marker.bindPopup(`<b>${p.id}. ${p.name}</b><br>${p.location}<br><span style="color:${color}">${cat}</span><br><br><span class="popup-link" onclick="jumpTo(${p.id})">View full profile →</span>`);
+    markerById[p.id] = marker;
+  });
+
+  const legend = document.getElementById('mapLegend');
+  legend.innerHTML = '';
+  Object.entries(CATEGORY_COLORS).forEach(([cat, color]) => {
+    if (!DATA.projects.some(p => categoryOf(p) === cat)) return;
+    const span = el('span', null, `<span class="swatch" style="background:${color}"></span>${cat}`);
+    legend.appendChild(span);
+  });
+}
+
+// ---------------- TAPC Roadmap tab (executive-summary format, no charts) ----------------
+let roadmapBuilt = false;
+function renderRoadmap() {
+  const v = document.getElementById('view-roadmap');
+  if (roadmapBuilt) return;
+  v.innerHTML = '';
+
+  const summaryCard = el('div', 'card');
+  summaryCard.appendChild(el('div', 'rm-section-title', 'TAPC Roadmap — Executive Summary'));
+  summaryCard.appendChild(el('p', null, "TAPC applies NREL's SAPC (Solar Access to Public Capital) convene-standardize-securitize playbook to thermal energy networks over a three-year arc: standardize contracts and data, build a credit-risk methodology, and run a mock securitization to open the asset class to institutional capital — the same sequence that turned solar PV into a routine, multi-billion-dollar ABS market."));
+  v.appendChild(summaryCard);
+
+  // --- 1. Roadmap & Milestones ---
+  const c1 = el('div', 'card');
+  c1.appendChild(el('div', 'rm-section-title', '1. Three-Year Roadmap & Milestones'));
+  const phaseGrid = el('div', 'rm-phase-grid');
+  RM.roadmap_phases.forEach(ph => {
+    const card = el('div', 'rm-phase-card');
+    card.appendChild(el('h4', null, ph.phase));
+    card.appendChild(el('div', null, ph.years));
+    const ul = el('ul');
+    ph.milestones.forEach(m => ul.appendChild(el('li', null, m)));
+    card.appendChild(ul);
+    card.appendChild(el('div', 'funding-mix', ph.funding_mix));
+    phaseGrid.appendChild(card);
+  });
+  c1.appendChild(phaseGrid);
+
+  c1.appendChild(el('div', 'table-heading', 'Six Work Streams — 1:1 Parallel to SAPC'));
+  const wsWrap = el('div', 'table-wrap');
+  const wsTable = el('table');
+  wsTable.innerHTML = '<thead><tr><th>#</th><th>SAPC Output (Solar Precedent)</th><th>TAPC Equivalent (Thermal)</th></tr></thead>';
+  const wsBody = el('tbody');
+  RM.workstreams.forEach(w => {
+    const tr = el('tr');
+    tr.innerHTML = `<td>${w.num}</td><td>${w.sapc}</td><td>${w.tapc}</td>`;
+    wsBody.appendChild(tr);
+  });
+  wsTable.appendChild(wsBody);
+  wsWrap.appendChild(wsTable);
+  c1.appendChild(wsWrap);
+  v.appendChild(c1);
+
+  // --- 2. Cost of Capital Impact ---
+  const c2 = el('div', 'card');
+  c2.appendChild(el('div', 'rm-section-title', '2. Cost-of-Capital Impact'));
+  const prec = RM.cost_of_capital.precedent;
+  c2.appendChild(el('p', null, `<b>${prec.label}:</b> ${prec.cost_reduction}`));
+  const cocWrap = el('div', 'table-wrap');
+  const cocTable = el('table');
+  cocTable.innerHTML = '<thead><tr><th>Segment</th><th>Cost of capital today</th><th>Projected improvement with TAPC</th><th>Mechanism</th></tr></thead>';
+  const cocBody = el('tbody');
+  RM.cost_of_capital.segments.forEach(s => {
+    const tr = el('tr');
+    tr.innerHTML = `<td><b>${s.segment}</b></td><td>${s.today}</td><td>${s.with_tapc}</td><td>${s.mechanism}</td>`;
+    cocBody.appendChild(tr);
+  });
+  cocTable.appendChild(cocBody);
+  cocWrap.appendChild(cocTable);
+  c2.appendChild(cocWrap);
+  v.appendChild(c2);
+
+  // --- 3. Market Sizing & Growth ---
+  const c3 = el('div', 'card');
+  c3.appendChild(el('div', 'rm-section-title', '3. Market Sizing & Growth Projections'));
+  c3.appendChild(el('p', null, `Cumulative new-issuance potential, ${RM.market_sizing.years} (illustrative).`));
+  const msWrap = el('div', 'table-wrap');
+  const msTable = el('table');
+  msTable.innerHTML = '<thead><tr><th>Segment</th><th>Low</th><th>Base</th><th>High</th></tr></thead>';
+  const msBody = el('tbody');
+  RM.market_sizing.segments.forEach(s => {
+    const tr = el('tr');
+    tr.innerHTML = `<td><b>${s.segment}</b></td><td>$${s.low}B</td><td>$${s.base}B</td><td>$${s.high}B</td>`;
+    msBody.appendChild(tr);
+  });
+  const totRow = el('tr');
+  const t = RM.market_sizing.total;
+  totRow.innerHTML = `<td><b>TOTAL</b></td><td><b>$${t.low}B</b></td><td><b>$${t.base}B</b></td><td><b>$${t.high}B</b></td>`;
+  msBody.appendChild(totRow);
+  msTable.appendChild(msBody);
+  msWrap.appendChild(msTable);
+  c3.appendChild(msWrap);
+  v.appendChild(c3);
+
+  // --- 4. Climate Impact ---
+  const c4 = el('div', 'card');
+  c4.appendChild(el('div', 'rm-section-title', '4. Climate Impact Potential'));
+  c4.appendChild(el('p', null, `Base-case outcomes if the Section 3 volumes are deployed (${RM.climate_impact.years}, illustrative).`));
+  const ciWrap = el('div', 'table-wrap');
+  const ciTable = el('table');
+  ciTable.innerHTML = '<thead><tr><th>Segment</th><th>Physical reach</th><th>CO2 avoided</th><th>Other impact</th></tr></thead>';
+  const ciBody = el('tbody');
+  RM.climate_impact.segments.forEach(s => {
+    const tr = el('tr');
+    tr.innerHTML = `<td><b>${s.segment}</b></td><td>${s.reach}</td><td>${s.co2}</td><td>${s.other}</td>`;
+    ciBody.appendChild(tr);
+  });
+  ciTable.appendChild(ciBody);
+  ciWrap.appendChild(ciTable);
+  c4.appendChild(ciWrap);
+  c4.appendChild(el('p', null, `<b>Total:</b> ${RM.climate_impact.total}`));
+  c4.appendChild(el('p', null, `<b>Grid benefit:</b> ${RM.climate_impact.grid_benefit}`));
+  v.appendChild(c4);
+
+  roadmapBuilt = true;
+}
+
+function jumpTo(id) {
+  document.getElementById('projSelect').value = id;
+  selectProject(id);
+  setView('profile');
+}
+
+function selectProject(id) {
+  const p = DATA.projects.find(x => String(x.id) === String(id));
+  if (p) renderProfile(p);
+}
+
+function setView(name) {
+  ['profile','map','table','roadmap','ref'].forEach(n => {
+    document.getElementById('view-' + n).classList.toggle('active', n === name);
+  });
+  document.querySelectorAll('.tabbtn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  if (name === 'map') renderMap();
+  if (name === 'roadmap') renderRoadmap();
+}
+
+function init() {
+  const sel = document.getElementById('projSelect');
+  DATA.projects.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e => selectProject(e.target.value));
+  document.getElementById('countLabel').textContent = DATA.projects.length + ' projects';
+  selectProject(DATA.projects[0].id);
+  renderTables();
+  renderRef();
+}
+init();
+</script>
+</body>
+</html>
